@@ -11,20 +11,12 @@ public class OrLogicalCondition : ConditionBase
 		StringBuilder result = new();
 
 		//if we got here then the conditions mustve succeeded, so we can skip to the actions
-		result.AppendLine($"goto event_{parameters["eventIndex"]}_actions;");
+		result.AppendLine($"goto {parameters["eventBaseName"]}_actions;");
 
-		result.AppendLine($"event_{parameters["eventIndex"]}_or_{orIndex}:;");
+		result.AppendLine($"{parameters["eventBaseName"]}_or_{orIndex}:;");
 
 		orIndex++;
-
-		if (orIndex == (int)parameters["numOfOrs"])
-		{
-			nextLabel = $"event_{parameters["eventIndex"]}_end";
-		}
-		else
-		{
-			nextLabel = $"event_{parameters["eventIndex"]}_or_{orIndex}";
-		}
+		nextLabel = EventProcessor.GenerateEventNextLabel(parameters["eventGroup"] as EventGroup, orIndex);
 
 		//Reset instances
 		//TODO: check if were are only resetting actually relevant instances
