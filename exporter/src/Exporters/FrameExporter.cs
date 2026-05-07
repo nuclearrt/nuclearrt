@@ -112,7 +112,7 @@ public class FrameExporter : BaseExporter
 			string layerName = SanitizeObjectName(layer.Name);
 			layers.AppendLine($"Layer {layerName} = Layer(\"{SanitizeString(layer.Name)}\", {layer.XCoeff}, {layer.YCoeff});");
 
-			if (ColorUtils.ColorToArgb(layer.RGBCoeff) != "0xFFFFFFFF") layers.AppendLine($"{layerName}.RGBCoefficient = {ColorToRGB(layer.RGBCoeff)};");
+			if (ColorUtils.ColorToRGB(layer.RGBCoeff) != "0xFFFFFFFF") layers.AppendLine($"{layerName}.RGBCoefficient = {ColorToRGB(layer.RGBCoeff)};");
 			if (layer.RGBCoeff.A != 255) layers.AppendLine($"{layerName}.SetEffectParameter({Math.Clamp(byte.MaxValue - layer.RGBCoeff.A, 0, 255)});");
 			
 			if (layer.Flags.GetFlag("SameEffectAsPreviousLayer")) layers.AppendLine($"{layerName}.usePreviousLayerEffect = true;");

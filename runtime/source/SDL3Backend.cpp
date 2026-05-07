@@ -1016,7 +1016,7 @@ void SDL3Backend::UnloadTexture(int id) {
 	textures.erase(it);
 }
 
-void SDL3Backend::DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scale, int color, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
+void SDL3Backend::DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scaleX, float scaleY, int color, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
 {
 	auto imageInfo = ImageBank::Instance().GetImage(id);
 	if (!imageInfo) {
@@ -1048,13 +1048,13 @@ void SDL3Backend::DrawTexture(int id, int x, int y, int offsetX, int offsetY, in
 
 	ApplyEffectParameters(effectInstance, texture.width, texture.height, color, effect, effectParameter, texture.textureId);
 	
-	float drawX = static_cast<float>(x - offsetX);
-	float drawY = static_cast<float>(y - offsetY);
-	float width = static_cast<float>(imageInfo->Width);
-	float height = static_cast<float>(imageInfo->Height);
+	float drawX = static_cast<float>(x) - (static_cast<float>(offsetX) * scaleX);
+	float drawY = static_cast<float>(y) - (static_cast<float>(offsetY) * scaleY);
+	float width = static_cast<float>(imageInfo->Width) * scaleX;
+	float height = static_cast<float>(imageInfo->Height) * scaleY;
 	float drawAngle = static_cast<float>(360 - angle);
 	
-	RenderQuad(drawX, drawY, width, height, drawAngle, static_cast<float>(offsetX), static_cast<float>(offsetY));
+	RenderQuad(drawX, drawY, width, height, drawAngle, static_cast<float>(offsetX) * scaleX, static_cast<float>(offsetY) * scaleY);
 	
 	if (needsBlendRestore) {
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);

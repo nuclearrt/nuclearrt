@@ -166,11 +166,12 @@ void Frame::DrawLayer(Layer& layer)
 
 			Application::Instance().GetBackend()->DrawTexture(
 				imageId, instance->X - (scrollX * layer.XCoefficient), instance->Y - (scrollY * layer.YCoefficient),
-				0, 0, 0, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
+				0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
 		}
 		else if (instance->Type == 2)
 		{
 			if (!((Active*)instance)->Visible) continue;
+			if (((Active*)instance)->xScale <= 0.0f || ((Active*)instance)->yScale <= 0.0f) continue;
 
 			auto& imageBank = ImageBank::Instance();
 			auto& animations = ((Active*)instance)->animations;
@@ -204,7 +205,7 @@ void Frame::DrawLayer(Layer& layer)
 				Application::Instance().GetBackend()->DrawTexture(
 					imageId, instance->X - scrollXOffset, instance->Y - scrollYOffset,
 					imageInfo->HotspotX, imageInfo->HotspotY, 
-					angle, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
+					angle, ((Active*)instance)->xScale, ((Active*)instance)->yScale, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
 			}
 		}
 		else if (instance->Type == 3) // Text
@@ -365,7 +366,7 @@ void Frame::DrawCounterNumbers(CounterBase *counter, int value, int x, int y)
 			Application::Instance().GetBackend()->DrawTexture(
 				counter->Frames[imageIndex], currentX, y - MaxHeight,
 				0, 0, 
-				0, 1.0f, 0xFFFFFFFF, 0, 0);
+				0, 1.0f, 1.0f, 0xFFFFFFFF, 0, 0);
 			currentX += imageInfo->Width;
 		}
 	}
@@ -671,6 +672,8 @@ struct CollisionInstanceBounds {
 	int angle;
 	unsigned int imageId;
 	int hotspotX, hotspotY;
+	int maskWidth, maskHeight;
+	float scaleX, scaleY;
 };
 
 static std::unordered_map<Frame*, std::unordered_map<ObjectInstance*, CollisionInstanceBounds>> s_instanceBoundsCache;
@@ -689,6 +692,8 @@ static CollisionInstanceBounds GetInstanceBounds(Frame* frame, ObjectInstance* i
 
 	CollisionInstanceBounds bounds = {0};
 	bounds.angle = instance->GetAngle();
+	bounds.scaleX = 1.0f;
+	bounds.scaleY = 1.0f;
 	
 	unsigned int imageId = 0;
 	int drawX = 0, drawY = 0;
@@ -700,6 +705,8 @@ static CollisionInstanceBounds GetInstanceBounds(Frame* frame, ObjectInstance* i
 		drawY = instance->Y - (scrollY * frame->Layers[instance->Layer].YCoefficient);
 		bounds.width = ((QuickBackdrop*)instance)->Width;
 		bounds.height = ((QuickBackdrop*)instance)->Height;
+		bounds.maskWidth = bounds.width;
+		bounds.maskHeight = bounds.height;
 	} else if (instance->Type == 1) { // Backdrop
 		imageId = ((Backdrop*)instance)->Image;
 		drawX = instance->X - (scrollX * frame->Layers[instance->Layer].XCoefficient);
@@ -708,11 +715,16 @@ static CollisionInstanceBounds GetInstanceBounds(Frame* frame, ObjectInstance* i
 		if (imageInfo) {
 			bounds.width = imageInfo->Width;
 			bounds.height = imageInfo->Height;
+			bounds.maskWidth = imageInfo->Width;
+			bounds.maskHeight = imageInfo->Height;
 		}
 	} else { // Active object
-		imageId = ((Active*)instance)->animations.GetCurrentImageHandle();
+		Active* active = (Active*)instance;
+		imageId = active->animations.GetCurrentImageHandle();
+		bounds.scaleX = active->xScale;
+		bounds.scaleY = active->yScale;
 		int scrollXOffset = 0, scrollYOffset = 0;
-		if (((Active*)instance)->FollowFrame) {
+		if (active->FollowFrame) {
 			scrollXOffset = scrollX * frame->Layers[instance->Layer].XCoefficient;
 			scrollYOffset = scrollY * frame->Layers[instance->Layer].YCoefficient;
 		}
@@ -720,10 +732,12 @@ static CollisionInstanceBounds GetInstanceBounds(Frame* frame, ObjectInstance* i
 		drawY = instance->Y - scrollYOffset;
 		auto imageInfo = ImageBank::Instance().GetImage(imageId);
 		if (imageInfo) {
-			hotspotX = imageInfo->HotspotX;
-			hotspotY = imageInfo->HotspotY;
-			bounds.width = imageInfo->Width;
-			bounds.height = imageInfo->Height;
+			bounds.maskWidth = imageInfo->Width;
+			bounds.maskHeight = imageInfo->Height;
+			hotspotX = (int)std::lround(imageInfo->HotspotX * bounds.scaleX);
+			hotspotY = (int)std::lround(imageInfo->HotspotY * bounds.scaleY);
+			bounds.width = std::max((int)std::lround(imageInfo->Width * bounds.scaleX), 1);
+			bounds.height = std::max((int)std::lround(imageInfo->Height * bounds.scaleY), 1);
 		}
 	}
 	
@@ -801,6 +815,11 @@ static bool IsPixelSolid(const std::vector<uint8_t>& maskData, int width, int he
 	return (maskData[byteIndex] & (1 << bitIndex)) != 0;
 }
 
+static int ConvertScaledCoordToMaskCoord(int scaledCoord, float scale, int maskSize) {
+	(void)maskSize;
+	return (int)std::floor(scaledCoord / scale);
+}
+
 bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 {
 	//Only check collision for relevant object types
@@ -857,10 +876,10 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 		return false;
 	}
 	
-	int width1 = bounds1.width;
-	int height1 = bounds1.height;
-	int width2 = bounds2.width;
-	int height2 = bounds2.height;
+	int width1 = bounds1.maskWidth;
+	int height1 = bounds1.maskHeight;
+	int width2 = bounds2.maskWidth;
+	int height2 = bounds2.maskHeight;
 	if (instance1->Type == 0) {
 		width1 = ((QuickBackdrop*)instance1)->Width;
 		height1 = ((QuickBackdrop*)instance1)->Height;
@@ -870,16 +889,8 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 		height2 = ((QuickBackdrop*)instance2)->Height;
 	}
 	
-	int hotspotX1 = 0, hotspotY1 = 0;
-	int hotspotX2 = 0, hotspotY2 = 0;
-	if (instance1->Type == 2 && imageInfo1) {
-		hotspotX1 = imageInfo1->HotspotX;
-		hotspotY1 = imageInfo1->HotspotY;
-	}
-	if (instance2->Type == 2 && imageInfo2) {
-		hotspotX2 = imageInfo2->HotspotX;
-		hotspotY2 = imageInfo2->HotspotY;
-	}
+	int hotspotX1 = bounds1.hotspotX, hotspotY1 = bounds1.hotspotY;
+	int hotspotX2 = bounds2.hotspotX, hotspotY2 = bounds2.hotspotY;
 	
 	float cos1 = 1.0f, sin1 = 0.0f;
 	float cos2 = 1.0f, sin2 = 0.0f;
@@ -907,8 +918,10 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 				dx1 = nx; dy1 = ny;
 			}
 			int lx1 = (int)(dx1 + hotspotX1), ly1 = (int)(dy1 + hotspotY1);
-			bool solid1 = useMask1 ? IsPixelSolid(*maskData1, width1, height1, lx1, ly1)
-				: (lx1 >= 0 && lx1 < width1 && ly1 >= 0 && ly1 < height1);
+			int sampleX1 = ConvertScaledCoordToMaskCoord(lx1, bounds1.scaleX, width1);
+			int sampleY1 = ConvertScaledCoordToMaskCoord(ly1, bounds1.scaleY, height1);
+			bool solid1 = useMask1 ? IsPixelSolid(*maskData1, width1, height1, sampleX1, sampleY1)
+				: (lx1 >= 0 && lx1 < bounds1.width && ly1 >= 0 && ly1 < bounds1.height);
 
 			float dx2 = px - bounds2.centerX, dy2 = py - bounds2.centerY;
 			if (bounds2.angle != 0) {
@@ -916,8 +929,10 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 				dx2 = nx; dy2 = ny;
 			}
 			int lx2 = (int)(dx2 + hotspotX2), ly2 = (int)(dy2 + hotspotY2);
-			bool solid2 = useMask2 ? IsPixelSolid(*maskData2, width2, height2, lx2, ly2)
-				: (lx2 >= 0 && lx2 < width2 && ly2 >= 0 && ly2 < height2);
+			int sampleX2 = ConvertScaledCoordToMaskCoord(lx2, bounds2.scaleX, width2);
+			int sampleY2 = ConvertScaledCoordToMaskCoord(ly2, bounds2.scaleY, height2);
+			bool solid2 = useMask2 ? IsPixelSolid(*maskData2, width2, height2, sampleX2, sampleY2)
+				: (lx2 >= 0 && lx2 < bounds2.width && ly2 >= 0 && ly2 < bounds2.height);
 
 			if (solid1 && solid2)
 				return true;
@@ -960,8 +975,8 @@ bool Frame::IsColliding(ObjectInstance *instance, int x, int y)
 	auto imageInfo = ImageBank::Instance().GetImage(imageId);
 	if (!imageInfo) return IsPointInRotatedBox(x, y, bounds);
 
-	int width = bounds.width;
-	int height = bounds.height;
+	int width = bounds.maskWidth;
+	int height = bounds.maskHeight;
 	if (instance->Type == 0) {
 		width = ((QuickBackdrop*)instance)->Width;
 		height = ((QuickBackdrop*)instance)->Height;
@@ -980,5 +995,7 @@ bool Frame::IsColliding(ObjectInstance *instance, int x, int y)
 	}
 	int localX = (int)(dx + bounds.hotspotX);
 	int localY = (int)(dy + bounds.hotspotY);
-	return IsPixelSolid(*maskData, width, height, localX, localY);
+	int sampleX = ConvertScaledCoordToMaskCoord(localX, bounds.scaleX, width);
+	int sampleY = ConvertScaledCoordToMaskCoord(localY, bounds.scaleY, height);
+	return IsPixelSolid(*maskData, width, height, sampleX, sampleY);
 }
