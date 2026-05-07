@@ -219,6 +219,7 @@ public class EventProcessor
 			for (int j = 0; j < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; j++)
 			{
 				var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[j];
+				if (ShouldSkipEvent(evt)) continue;
 
 				foreach (var condition in evt.Conditions)
 				{
