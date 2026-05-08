@@ -11,6 +11,9 @@
 #include "FontBank.h"
 #include "ImageBank.h"
 #include "ObjectGlobalDataCounter.h"
+#include "GraphicsBackend.h"
+#include "InputBackend.h"
+#include "PlatformBackend.h"
 
 constexpr float PI = 3.14159265358979323846f;
 
@@ -25,7 +28,7 @@ void Frame::PostInitialize()
 void Frame::Update()
 {
 	ClearBoundsCache();
-	float deltaTime = Application::Instance().GetBackend()->GetTimeDelta();
+	float deltaTime = Application::Instance().GetBackend()->platform->GetTimeDelta();
 	GameTimer.Update(deltaTime);
 
 	for (auto& [handle, instance] : ObjectInstances)
@@ -49,7 +52,7 @@ void Frame::Update()
 
 void Frame::Draw()
 {
-	Application::Instance().GetBackend()->Clear(BackgroundColor);
+	Application::Instance().GetBackend()->graphics->Clear(BackgroundColor);
 
 	for (unsigned int i = 0; i < Layers.size(); i++)
 	{
@@ -61,7 +64,7 @@ void Frame::Draw()
 			continue;
 		}
 
-		Application::Instance().GetBackend()->BeginLayerDrawing();
+		Application::Instance().GetBackend()->graphics->BeginLayerDrawing();
 		DrawLayer(layer);
 
 		EffectInstance* effectInstance = nullptr;
@@ -90,7 +93,7 @@ void Frame::Draw()
 			}
 		}
 
-		Application::Instance().GetBackend()->EndLayerDrawing(rgbCoefficient, effect, effectParameter, effectInstance);
+		Application::Instance().GetBackend()->graphics->EndLayerDrawing(rgbCoefficient, effect, effectParameter, effectInstance);
 	}
 }
 
@@ -164,7 +167,7 @@ void Frame::DrawLayer(Layer& layer)
 			auto& imageBank = ImageBank::Instance();
 			unsigned int imageId = ((Backdrop*)instance)->Image;
 
-			Application::Instance().GetBackend()->DrawTexture(
+			Application::Instance().GetBackend()->graphics->DrawTexture(
 				imageId, instance->X - (scrollX * layer.XCoefficient), instance->Y - (scrollY * layer.YCoefficient),
 				0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
 		}
@@ -202,7 +205,7 @@ void Frame::DrawLayer(Layer& layer)
 					}
 				}
 
-				Application::Instance().GetBackend()->DrawTexture(
+				Application::Instance().GetBackend()->graphics->DrawTexture(
 					imageId, instance->X - scrollXOffset, instance->Y - scrollYOffset,
 					imageInfo->HotspotX, imageInfo->HotspotY, 
 					angle, ((Active*)instance)->xScale, ((Active*)instance)->yScale, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
@@ -222,7 +225,7 @@ void Frame::DrawLayer(Layer& layer)
 			}
 
 			std::string text = ((StringObject*)instance)->GetText();
-			Application::Instance().GetBackend()->DrawText(
+			Application::Instance().GetBackend()->graphics->DrawText(
 				FontBank::Instance().GetFont(((StringObject*)instance)->GetFont()),
 				instance->X - scrollXOffset,
 				instance->Y - scrollYOffset,
@@ -274,7 +277,7 @@ void Frame::DrawLayer(Layer& layer)
 		{
 			int scrollXOffset = scrollX * layer.XCoefficient;
 			int scrollYOffset = scrollY * layer.YCoefficient;
-			Application::Instance().GetBackend()->DrawQuickBackdrop(instance->X - scrollXOffset, instance->Y - scrollYOffset, ((QuickBackdrop*)instance)->Width, ((QuickBackdrop*)instance)->Height, &((QuickBackdrop*)instance)->shape);
+			Application::Instance().GetBackend()->graphics->DrawQuickBackdrop(instance->X - scrollXOffset, instance->Y - scrollYOffset, ((QuickBackdrop*)instance)->Width, ((QuickBackdrop*)instance)->Height, &((QuickBackdrop*)instance)->shape);
 		}
 		else if (instance->Type >= 32) // Extension
 		{
@@ -363,7 +366,7 @@ void Frame::DrawCounterNumbers(CounterBase *counter, int value, int x, int y)
 		auto imageInfo = ImageBank::Instance().GetImage(counter->Frames[imageIndex]);
 		if (imageInfo)
 		{
-			Application::Instance().GetBackend()->DrawTexture(
+			Application::Instance().GetBackend()->graphics->DrawTexture(
 				counter->Frames[imageIndex], currentX, y - MaxHeight,
 				0, 0, 
 				0, 1.0f, 1.0f, 0xFFFFFFFF, 0, 0);
@@ -431,7 +434,7 @@ ObjectInstance* Frame::CreateInstance(ObjectInstance* createdInstance, short x, 
 		std::vector<unsigned int> texturesToLoad = createdInstance->GetImagesUsed();
 		auto backend = Application::Instance().GetBackend();
 		for (unsigned int textureId : texturesToLoad) {
-			backend->LoadTexture(textureId);
+			backend->graphics->LoadTexture(textureId);
 		}
 	}
 	
@@ -565,12 +568,12 @@ void Frame::MoveObjectBehindOf(ObjectInstance* instance, unsigned int oiHandle)
 
 int Frame::GetMouseX()
 {
-	return Application::Instance().GetBackend()->GetMouseX() + scrollX;
+	return Application::Instance().GetBackend()->input->GetMouseX() + scrollX;
 }
 
 int Frame::GetMouseY()
 {
-	return Application::Instance().GetBackend()->GetMouseY() + scrollY;
+	return Application::Instance().GetBackend()->input->GetMouseY() + scrollY;
 }
 
 void Frame::ApplyGlobalObjectData(std::vector<ObjectGlobalData*> savedData)
@@ -856,8 +859,8 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 	}
 	
 	Backend* backend = Application::Instance().GetBackend().get();
-	const std::vector<uint8_t>* maskData1 = backend->GetCollisionMaskData(imageId1);
-	const std::vector<uint8_t>* maskData2 = backend->GetCollisionMaskData(imageId2);
+	const std::vector<uint8_t>* maskData1 = backend->platform->GetCollisionMaskData(imageId1);
+	const std::vector<uint8_t>* maskData2 = backend->platform->GetCollisionMaskData(imageId2);
 
 	bool useMask1 = maskData1 && !maskData1->empty() && (instance1->Type == 1 || (instance1->Type == 2 && ((Active*)instance1)->FineDetection));
 	bool useMask2 = maskData2 && !maskData2->empty() && (instance2->Type == 1 || (instance2->Type == 2 && ((Active*)instance2)->FineDetection));
@@ -968,7 +971,7 @@ bool Frame::IsColliding(ObjectInstance *instance, int x, int y)
 	if (!fineDetection)
 		return IsPointInRotatedBox(x, y, bounds);
 	
-	const std::vector<uint8_t>* maskData = Application::Instance().GetBackend().get()->GetCollisionMaskData(imageId);
+	const std::vector<uint8_t>* maskData = Application::Instance().GetBackend().get()->platform->GetCollisionMaskData(imageId);
 	if (!maskData || maskData->empty())
 		return IsPointInRotatedBox(x, y, bounds);
 

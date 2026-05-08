@@ -1,5 +1,6 @@
 #include "ButtonObjectExtension.h"
 #include "Application.h"
+#include "GraphicsBackend.h"
 
 void ButtonObjectExtension::Initialize() {
 	if (Flags & 1) {
@@ -53,7 +54,7 @@ void ButtonObjectExtension::Draw() {
 			break;
 	}
 
-	Application::Instance().GetBackend()->DrawBitmap(bitmap, X, Y);
+	Application::Instance().GetBackend()->graphics->DrawBitmap(bitmap, X, Y);
 }
 
 void ButtonObjectExtension::ButtonDraw() {

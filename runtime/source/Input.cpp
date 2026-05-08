@@ -1,14 +1,17 @@
 #include "Input.h"
-#include "Application.h"
+
 #include <cstring>
+
+#include "Application.h"
+#include "InputBackend.h"
 
 void Input::Update()
 {
 	m_currIndex ^= 1;
-	Application::Instance().GetBackend()->GetKeyboardState(m_keyboardState[m_currIndex]);
+	Application::Instance().GetBackend()->input->GetKeyboardState(m_keyboardState[m_currIndex]);
 
 	previousMouseState = currentMouseState;
-	currentMouseState = Application::Instance().GetBackend()->GetMouseState();
+	currentMouseState = Application::Instance().GetBackend()->input->GetMouseState();
 }
 
 void Input::Reset()
@@ -78,17 +81,17 @@ bool Input::IsControlsPressed(int player, short control)
 
 int Input::GetMouseX()
 {
-	return Application::Instance().GetBackend()->GetMouseX();
+	return Application::Instance().GetBackend()->input->GetMouseX();
 }
 
 int Input::GetMouseY()
 {
-	return Application::Instance().GetBackend()->GetMouseY();
+	return Application::Instance().GetBackend()->input->GetMouseY();
 }
 
 int Input::GetMouseWheelMove()
 {
-	return Application::Instance().GetBackend()->GetMouseWheelMove();
+	return Application::Instance().GetBackend()->input->GetMouseWheelMove();
 }
 
 bool Input::IsMouseButtonDown(int button)

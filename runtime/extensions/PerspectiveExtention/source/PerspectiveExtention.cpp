@@ -4,9 +4,10 @@
 
 #include "Active.h"
 #include "Application.h"
+#include "GraphicsBackend.h"
 #include "Frame.h"
 #ifdef NUCLEAR_BACKEND_SDL3
-#include "SDL3Backend.h"
+#include "SDL3GraphicsBackend.h"
 #endif
 
 const std::string panoramaShader = R"(
@@ -152,8 +153,8 @@ void PerspectiveExtention::Initialize()
 void PerspectiveExtention::SetEffectType(char effect)
 {
 	#ifdef NUCLEAR_BACKEND_SDL3
-	auto sdl3Backend = std::dynamic_pointer_cast<SDL3Backend>(Application::Instance().GetBackend());
-    if (!sdl3Backend) {
+	auto* sdl3graphics = dynamic_cast<SDL3GraphicsBackend*>(Application::Instance().GetBackend()->graphics);
+	if (!sdl3graphics) {
 		return;
     }
 	
@@ -164,14 +165,14 @@ void PerspectiveExtention::SetEffectType(char effect)
 
     switch (effect) {
 		case 0: // Panorama
-			sdl3Backend->LoadShader("panorama", panoramaShader);
+			sdl3graphics->LoadShader("panorama", panoramaShader);
 			effectInstance = new EffectInstance("panorama", {
 				::EffectParameter("fB", 1, 0.0f),
 				::EffectParameter("pDir", 0, 0),
 			});
 		break;
         case 1: // Perspective
-			sdl3Backend->LoadShader("perspective", perspectiveShader);
+			sdl3graphics->LoadShader("perspective", perspectiveShader);
 			effectInstance = new EffectInstance("perspective", {
 				::EffectParameter("fA", 1, 0.0f),
 				::EffectParameter("fB", 1, 0.0f),
@@ -179,7 +180,7 @@ void PerspectiveExtention::SetEffectType(char effect)
 			});
 		break;
 		case 2: // Sine Waves
-			sdl3Backend->LoadShader("sineWaves", sineWavesShader);
+			sdl3graphics->LoadShader("sineWaves", sineWavesShader);
 			effectInstance = new EffectInstance("sineWaves", {
 				::EffectParameter("Zoom", 1, 0.0f),
 				::EffectParameter("WaveIncrement", 1, 0.0f),
@@ -188,7 +189,7 @@ void PerspectiveExtention::SetEffectType(char effect)
 			});
 		break;
 		case 3: // Sine Offset
-			sdl3Backend->LoadShader("sineOffset", sineOffsetShader);
+			sdl3graphics->LoadShader("sineOffset", sineOffsetShader);
 			effectInstance = new EffectInstance("sineOffset", {
 				::EffectParameter("Zoom", 1, 0.0f),
 				::EffectParameter("WaveIncrement", 1, 0.0f),
@@ -282,5 +283,5 @@ void PerspectiveExtention::UpdateShaderParameters()
 
 void PerspectiveExtention::Draw()
 {
-    Application::Instance().GetBackend()->DrawEffectRect(X, Y, width, height, 0, 0, 0, effectInstance);
+    Application::Instance().GetBackend()->graphics->DrawEffectRect(X, Y, width, height, 0, 0, 0, effectInstance);
 }

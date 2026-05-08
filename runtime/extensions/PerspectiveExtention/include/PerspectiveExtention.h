@@ -1,8 +1,6 @@
 #pragma once
 
-#include "Application.h"
 #include "Extension.h"
-#include "ObjectInstance.h"
 	
 class PerspectiveExtention : public Extension {
 public:

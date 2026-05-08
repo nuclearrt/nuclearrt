@@ -1,6 +1,9 @@
 #include "MouseMovement.h"
-#include "Application.h"
+
 #include <algorithm>
+
+#include "Application.h"
+#include "InputBackend.h"
 
 void MouseMovement::Initialize() {
 	initialX = Instance->X;
@@ -8,14 +11,14 @@ void MouseMovement::Initialize() {
 }
 
 void MouseMovement::OnEnabled() {
-	Application::Instance().GetBackend()->HideMouseCursor();
+	Application::Instance().GetBackend()->input->HideMouseCursor();
 
-	disabledCursorX = Application::Instance().GetBackend()->GetMouseX();
-	disabledCursorY = Application::Instance().GetBackend()->GetMouseY();
+	disabledCursorX = Application::Instance().GetBackend()->input->GetMouseX();
+	disabledCursorY = Application::Instance().GetBackend()->input->GetMouseY();
 }
 
 void MouseMovement::OnDisabled() {
-	Application::Instance().GetBackend()->ShowMouseCursor();
+	Application::Instance().GetBackend()->input->ShowMouseCursor();
 }
 
 void MouseMovement::Update(float deltaTime) {
@@ -25,8 +28,8 @@ void MouseMovement::Update(float deltaTime) {
 	int xDifference = mouseX - disabledCursorX;
 	int yDifference = mouseY - disabledCursorY;
 	
-	Application::Instance().GetBackend()->SetMouseX(disabledCursorX);
-	Application::Instance().GetBackend()->SetMouseY(disabledCursorY);
+	Application::Instance().GetBackend()->input->SetMouseX(disabledCursorX);
+	Application::Instance().GetBackend()->input->SetMouseY(disabledCursorY);
 
 	Instance->X += xDifference;
 	Instance->Y += yDifference;

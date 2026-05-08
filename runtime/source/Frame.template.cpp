@@ -1,10 +1,12 @@
 #include "GeneratedFrame{{ FRAME_INDEX }}.h"
 
 #include "Application.h"
+#include "AudioBackend.h"
 #include "GameState.h"
 #include "Input.h"
 #include "ObjectFactory.h"
 #include "MathHelper.h"
+#include "PlatformBackend.h"
 
 void GeneratedFrame{{ FRAME_INDEX }}::Initialize() {
 	Frame::Initialize();

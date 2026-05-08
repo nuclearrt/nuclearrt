@@ -1,74 +1,27 @@
 #ifdef NUCLEAR_BACKEND_SDL3
 
-#include "SDL3Backend.h"
+#include "SDL3GraphicsBackend.h"
 
 #include <iostream>
 #include "Application.h"
+#include "SDL3Backend.h"
 #include "Frame.h"
 #include "FontBank.h"
-#include "SoundBank.h"
 #include "ImageBank.h"
-#include "PakFile.h"
 #include <math.h>
-#include <filesystem>
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
-#include "./libs/stb_vorbis.c" // OGG SUPPORT
-#define DR_MP3_IMPLEMENTATION
-#include "./libs/dr_mp3.h" // MP3 SUPPORT
 #ifdef _DEBUG
 #include "DebugUI.h"
 #include "imgui.h"
 #include <imgui_impl_sdl3.h>
 #endif
 
-SDL_AudioDeviceID SDL3Backend::audio_device = NULL;
-SDL3Backend::SDL3Backend() {
-}
-
-SDL3Backend::~SDL3Backend() {
-	Deinitialize();
-}
-void SDLCALL SDL3Backend::AudioCallback(void *userdata, SDL_AudioStream *stream, int additional_amount, int total_amount)
-{
-	auto& channels = *(Channel(*)[49])userdata;
-	int frames = additional_amount / (sizeof(float) * 2);
-	float mixBuffer[8192 * 2] = {0}; // Initilaze array so no garbage data is found
-	if (frames > 8192) frames = 8192;
-	for (int i = 0; i < frames; ++i) {
-		float left = 0.0f, right = 0.0f;
-		for (int ch = 1; ch < SDL_arraysize(channels); ++ch) {
-			Channel& channel = channels[ch];
-			if (!channel.stream) continue;
-			float tempData[2] = {0};
-			int getData = SDL_GetAudioStreamData(channel.stream, tempData, sizeof(tempData));
-			if (getData <= 0) { // Channel has finished playing.
-				channel.finished = true;
-				continue;
-			}
-			channel.position += getData / (sizeof(float) * 2);
-			// Prepare volume + pan handling
-			float angle = (channel.pan + 1.0f) * 0.25f * SDL_PI_F;
-			float leftGain = SDL_cosf(angle) * channel.volume;
-			float rightGain = SDL_sinf(angle) * channel.volume;
-			left += tempData[0] * leftGain;
-			right += tempData[1] * rightGain;
-		}
-		left = fmaxf(-1.0f, fminf(left, 1.0f));
-		right = fmaxf(-1.0f, fminf(right, 1.0f));
-
-		mixBuffer[i * 2 + 1] = right;
-		mixBuffer[i * 2 + 0] = left;
-	}
-	SDL_PutAudioStreamData(stream, mixBuffer, static_cast<unsigned long long>(frames) * 2 * sizeof(float)); // Using static_cast from what visual studio recommended
-}
-
-void SDL3Backend::Initialize() {
+void SDL3GraphicsBackend::Initialize() {
 	int windowWidth = Application::Instance().GetAppData()->GetWindowWidth();
 	int windowHeight = Application::Instance().GetAppData()->GetWindowHeight();
 	std::string windowTitle = Application::Instance().GetAppData()->GetAppName();
-	
 	
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD)) {
 		std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
@@ -87,19 +40,6 @@ void SDL3Backend::Initialize() {
 		std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
 		return;
 	}
-	// Create the Audio Device
-	spec.freq = 44100;
-	spec.channels = 2;
-	spec.format = SDL_AUDIO_F32;
-	audio_device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
-    if (!audio_device) {
-        std::cerr << "SDL_OpenAudioDevice Error : " << SDL_GetError() << std::endl;
-        return;
-    }
-	masterStream = SDL_CreateAudioStream(&spec, NULL);
-	SDL_BindAudioStream(audio_device, masterStream);
-	SDL_SetAudioStreamGetCallback(masterStream, AudioCallback, &channels); // Put callback only runs when SDL_PutAudioStreamData is ran, so use the getcallback to put data instead
-	std::cout << "Opened Audio Device.\n";
 	
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
@@ -127,12 +67,6 @@ void SDL3Backend::Initialize() {
 	glEnable(GL_BLEND);
 
 	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
-	//load assets
-	if (!pakFile.Load(GetAssetsFileName())) {
-		std::cerr << "PakFile::Load Error: " << "Failed to load assets file" << std::endl;
-		return;
-	}
 
 	float verts[] = {
 		0.0f, 0.0f, 0.0f, 0.0f,
@@ -166,8 +100,8 @@ void SDL3Backend::Initialize() {
 	DEBUG_UI.Initialize(window, glContext);
 	
 	DEBUG_UI.AddWindow(Application::Instance().GetAppData()->GetAppName(), [this]() {
-		ImGui::Text("Platform: %s", GetPlatformName().c_str());
-		ImGui::Text("Assets File: %s", GetAssetsFileName().c_str());
+		ImGui::Text("Platform: %s", backend->platform ? backend->platform->GetPlatformName().c_str() : "");
+		ImGui::Text("Assets File: %s", backend->platform ? backend->platform->GetAssetsFileName().c_str() : "");
 
 		if (ImGui::CollapsingHeader("Window")) {
 			ImGui::Checkbox("Fit Inside", &Application::Instance().GetAppData()->GetFitInside());
@@ -260,7 +194,7 @@ void SDL3Backend::Initialize() {
 #endif
 }
 
-void SDL3Backend::Deinitialize()
+void SDL3GraphicsBackend::Deinitialize()
 {
 #ifdef _DEBUG
 	DEBUG_UI.Shutdown();
@@ -288,29 +222,6 @@ void SDL3Backend::Deinitialize()
 	}
 	fonts.clear();
 	fontBuffers.clear();
-	
-	// Close the Audio Device
-	SDL_PauseAudioDevice(audio_device);
-	SDL_SetAudioStreamGetCallback(masterStream, NULL, NULL);
-	SDL_ClearAudioStream(masterStream);
-	// cleanup audio
-	while (!sampleFiles.empty()) DiscardSampleFile(sampleFiles.begin()->first);
-	for (int i = 1; i < SDL_arraysize(channels); i++) {
-		if (!channels[i].stream) continue;
-		if (channels[i].data) {
-			SDL_free(channels[i].data);
-			channels[i].data = nullptr;
-			channels[i].data_len = 0;
-		}
-		SDL_UnbindAudioStream(channels[i].stream);
-		SDL_ClearAudioStream(channels[i].stream);
-		SDL_DestroyAudioStream(channels[i].stream);
-		channels[i].stream = nullptr;
-	}
-	SDL_UnbindAudioStream(masterStream);
-	SDL_DestroyAudioStream(masterStream);
-	SDL_CloseAudioDevice(audio_device);
-	std::cout << "AudioBackend shut down successfully.\n";
 	
 	if (renderTarget != 0) {
 		glDeleteFramebuffers(1, &renderTarget);
@@ -377,62 +288,9 @@ void SDL3Backend::Deinitialize()
 		SDL_GL_DestroyContext(glContext);
 		glContext = nullptr;
 	}
-	
-	// Destroy the window
-	if (window != nullptr) {
-		SDL_DestroyWindow(window);
-		window = nullptr;
-	}
-	TTF_Quit();
-	SDL_Quit();
 }
 
-bool SDL3Backend::ShouldQuit()
-{
-	SDL_Event event;
-	while (SDL_PollEvent(&event)) {
-#ifdef _DEBUG
-		// Process ImGui events
-		if (DEBUG_UI.IsEnabled()) {
-			ImGui_ImplSDL3_ProcessEvent(&event);
-		}
-		
-		// Toggle debug UI with F1 key
-		if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_F1 && event.key.repeat == 0) {
-			DEBUG_UI.ToggleEnabled();
-		}
-#endif
-		if (event.type == SDL_EVENT_WINDOW_FOCUS_GAINED) windowFocused = true;
-
-		if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST) windowFocused = false;
-
-		if (event.type == SDL_EVENT_QUIT) {
-			return true;
-		}
-	}
-	return false;
-}
-
-std::string SDL3Backend::GetPlatformName()
-{
-#if defined(PLATFORM_WINDOWS)
-	return "Windows";
-#elif defined(PLATFORM_MACOS)
-	return "macOS";
-#elif defined(PLATFORM_LINUX)
-	return "Linux";
-#else
-	return "Unknown";
-#endif
-}
-
-std::string SDL3Backend::GetAssetsFileName()
-{
-	const char* basePath = SDL_GetBasePath();
-	return std::string(basePath) + "assets.pak";
-}
-
-void SDL3Backend::BeginDrawing()
+void SDL3GraphicsBackend::BeginDrawing()
 {
 	if (glContext == nullptr) {
 		std::cerr << "BeginDrawing called with null renderer!" << std::endl;
@@ -458,7 +316,7 @@ void SDL3Backend::BeginDrawing()
 #endif
 }
 
-void SDL3Backend::EndDrawing()
+void SDL3GraphicsBackend::EndDrawing()
 {
 	if (glContext == nullptr) {
 		std::cerr << "EndDrawing called with null renderer!" << std::endl;
@@ -524,7 +382,7 @@ void SDL3Backend::EndDrawing()
 	}
 }
 
-void SDL3Backend::Clear(int color)
+void SDL3GraphicsBackend::Clear(int color)
 {
 	float r = ((color >> 16) & 0xFF) / 255.0f;
 	float g = ((color >> 8) & 0xFF) / 255.0f;
@@ -533,7 +391,7 @@ void SDL3Backend::Clear(int color)
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void SDL3Backend::BeginLayerDrawing()
+void SDL3GraphicsBackend::BeginLayerDrawing()
 {
 	CreateLayerRenderTarget(renderTargetWidth, renderTargetHeight);
 	glBindFramebuffer(GL_FRAMEBUFFER, layerRenderTarget);
@@ -543,7 +401,7 @@ void SDL3Backend::BeginLayerDrawing()
 	drawingLayer = true;
 }
 
-void SDL3Backend::EndLayerDrawing(int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
+void SDL3GraphicsBackend::EndLayerDrawing(int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
 {
 	if (!drawingLayer) {
 		return;
@@ -575,7 +433,7 @@ void SDL3Backend::EndLayerDrawing(int rgbCoefficient, int effect, unsigned char 
 	drawingLayer = false;
 }
 
-GLuint SDL3Backend::CompileShader(GLenum type, const char* source) {
+GLuint SDL3GraphicsBackend::CompileShader(GLenum type, const char* source) {
 	GLuint shader = glCreateShader(type);
 	glShaderSource(shader, 1, &source, nullptr);
 	glCompileShader(shader);
@@ -591,7 +449,7 @@ GLuint SDL3Backend::CompileShader(GLenum type, const char* source) {
 	return shader;
 }
 
-GLuint SDL3Backend::CreateShaderProgram(const char* vertexSrc, const char* fragmentSrc) {
+GLuint SDL3GraphicsBackend::CreateShaderProgram(const char* vertexSrc, const char* fragmentSrc) {
 	GLuint vertexShader = CompileShader(GL_VERTEX_SHADER, vertexSrc);
 	GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fragmentSrc);
 	
@@ -619,8 +477,9 @@ GLuint SDL3Backend::CreateShaderProgram(const char* vertexSrc, const char* fragm
 	return program;
 }
 
-std::string SDL3Backend::LoadShaderSource(const std::string& filename) {
-	std::vector<uint8_t> data = pakFile.GetData(filename);
+std::string SDL3GraphicsBackend::LoadShaderSource(const std::string& filename) {
+	if (!backend) return "";
+	std::vector<uint8_t> data = backend->GetPlatform()->GetPakFile().GetData(filename);
 	if (data.empty()) {
 		std::cerr << "Failed to load shader: " << filename  << ". Loading default shader..." << std::endl;
 		return LoadShaderSource("shaders/standard/normal.frag");
@@ -628,7 +487,7 @@ std::string SDL3Backend::LoadShaderSource(const std::string& filename) {
 	return std::string(reinterpret_cast<char*>(data.data()), data.size());
 }
 
-void SDL3Backend::CreateStandardShaders() {
+void SDL3GraphicsBackend::CreateStandardShaders() {
 	std::string vertexSrc = LoadShaderSource("shaders/standard/default.vert");
 	if (vertexSrc.empty()) {
 		std::cerr << "Failed to load default vertex shader" << std::endl;
@@ -646,9 +505,9 @@ void SDL3Backend::CreateStandardShaders() {
 		nullptr,
 		nullptr,
 		nullptr,
-		nullptr,
+		"shaders/standard/add.frag",
 		"shaders/standard/monochrome.frag",
-		nullptr,
+		"shaders/standard/subtract.frag",
 		nullptr
 	};
 	
@@ -725,7 +584,7 @@ void SDL3Backend::CreateStandardShaders() {
 	gradientShaderCircleClipLoc = glGetUniformLocation(gradientShaderProgram, "circleClip");
 }
 
-void SDL3Backend::UseEffectShader(int effect) {
+void SDL3GraphicsBackend::UseEffectShader(int effect) {
 	if (effect < 0 || effect >= STANDARD_EFFECT_COUNT) {
 		effect = 0;
 	}
@@ -738,7 +597,7 @@ void SDL3Backend::UseEffectShader(int effect) {
 	glUseProgram(effectShaders[effect].program);
 }
 
-void SDL3Backend::CreateRenderTarget(int width, int height) {
+void SDL3GraphicsBackend::CreateRenderTarget(int width, int height) {
 	if (renderTarget != 0) {
 		glDeleteFramebuffers(1, &renderTarget);
 		glDeleteTextures(1, &renderTargetTexture);
@@ -773,7 +632,7 @@ void SDL3Backend::CreateRenderTarget(int width, int height) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void SDL3Backend::CreateLayerRenderTarget(int width, int height) {
+void SDL3GraphicsBackend::CreateLayerRenderTarget(int width, int height) {
 	if (layerRenderTarget != 0 && layerRenderTargetTexture != 0 &&
 		layerRenderTargetWidth == width && layerRenderTargetHeight == height) {
 		return;
@@ -812,7 +671,8 @@ void SDL3Backend::CreateLayerRenderTarget(int width, int height) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void SDL3Backend::SetOrthoProjection(GLuint program, GLint mvpLoc, float width, float height) {
+
+void SDL3GraphicsBackend::SetOrthoProjection(GLuint program, GLint mvpLoc, float width, float height) {
 	float mvp[16] = {
 		2.0f / width, 0.0f, 0.0f, 0.0f,
 		0.0f, -2.0f / height, 0.0f, 0.0f,
@@ -822,7 +682,7 @@ void SDL3Backend::SetOrthoProjection(GLuint program, GLint mvpLoc, float width, 
 	glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, mvp);
 }
 
-void SDL3Backend::ApplyEffectParameters(EffectInstance* effectInstance, int textureWidth, int textureHeight, int rgbCoefficient, int effect, unsigned char effectParameter, GLuint textureId) {
+void SDL3GraphicsBackend::ApplyEffectParameters(EffectInstance* effectInstance, int textureWidth, int textureHeight, int rgbCoefficient, int effect, unsigned char effectParameter, GLuint textureId) {
 	float r = ((rgbCoefficient >> 16) & 0xFF) / 255.0f;
 	float g = ((rgbCoefficient >> 8) & 0xFF) / 255.0f;
 	float b = (rgbCoefficient & 0xFF) / 255.0f;
@@ -880,7 +740,7 @@ void SDL3Backend::ApplyEffectParameters(EffectInstance* effectInstance, int text
 	}
 }
 
-void SDL3Backend::RenderQuad(float x, float y, float w, float h, float angle, float pivotX, float pivotY, float u0, float v0, float u1, float v1) {
+void SDL3GraphicsBackend::RenderQuad(float x, float y, float w, float h, float angle, float pivotX, float pivotY, float u0, float v0, float u1, float v1) {
 	float rad = angle * (3.14159265358979323846f / 180.0f);
 	float cosA = cosf(rad);
 	float sinA = sinf(rad);
@@ -949,7 +809,7 @@ void SDL3Backend::RenderQuad(float x, float y, float w, float h, float angle, fl
 	glBindVertexArray(0);
 }
 
-void SDL3Backend::LoadTexture(int id) {
+void SDL3GraphicsBackend::LoadTexture(int id) {
 	//check if texture is already loaded
 	if (textures.find(id) != textures.end()) {
 		return;
@@ -964,7 +824,8 @@ void SDL3Backend::LoadTexture(int id) {
 	char imageFileName[32];
 	std::snprintf(imageFileName, sizeof(imageFileName), "images/%d.png", id);
 	
-	std::vector<uint8_t> data = pakFile.GetData(imageFileName);
+	if (!backend->platform) return;
+	std::vector<uint8_t> data = backend->GetPlatform()->GetPakFile().GetData(imageFileName);
 	if (data.empty()) {
 		std::cerr << "PakFile::GetData Error: " << "Image " << imageFileName << " not found" << std::endl;
 		return;
@@ -1003,7 +864,7 @@ void SDL3Backend::LoadTexture(int id) {
 	textures[id] = texture;
 }
 
-void SDL3Backend::UnloadTexture(int id) {
+void SDL3GraphicsBackend::UnloadTexture(int id) {
 	auto it = textures.find(id);
 	if (it == textures.end()) {
 		return;
@@ -1016,7 +877,7 @@ void SDL3Backend::UnloadTexture(int id) {
 	textures.erase(it);
 }
 
-void SDL3Backend::DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scaleX, float scaleY, int color, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
+void SDL3GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scaleX, float scaleY, int color, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
 {
 	auto imageInfo = ImageBank::Instance().GetImage(id);
 	if (!imageInfo) {
@@ -1061,7 +922,8 @@ void SDL3Backend::DrawTexture(int id, int x, int y, int offsetX, int offsetY, in
 	}
 }
 
-EffectShader* SDL3Backend::LoadShader(const std::string& hash)
+
+EffectShader* SDL3GraphicsBackend::LoadShader(const std::string& hash)
 {
 	auto it = thirdPartyShaders.find(hash);
 	if (it != thirdPartyShaders.end()) {
@@ -1076,7 +938,7 @@ EffectShader* SDL3Backend::LoadShader(const std::string& hash)
 	return LoadShader(hash, fragSrc);
 }
 
-EffectShader* SDL3Backend::LoadShader(const std::string& name, const std::string& fragSrc)
+EffectShader* SDL3GraphicsBackend::LoadShader(const std::string& name, const std::string& fragSrc)
 {
 	auto it = thirdPartyShaders.find(name);
 	if (it != thirdPartyShaders.end()) {
@@ -1104,7 +966,7 @@ EffectShader* SDL3Backend::LoadShader(const std::string& name, const std::string
 	return &inserted.first->second;
 }
 
-void SDL3Backend::DrawQuickBackdrop(int x, int y, int width, int height, Shape* shape)
+void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height, Shape* shape)
 {
 	if (shape->ShapeType == 1) { // Line
 		int x1 = shape->FlipX ? width - 1 : 0;
@@ -1185,7 +1047,7 @@ void SDL3Backend::DrawQuickBackdrop(int x, int y, int width, int height, Shape* 
 	}
 }
 
-void SDL3Backend::DrawBitmap(Bitmap& bitmap, int x, int y)
+void SDL3GraphicsBackend::DrawBitmap(Bitmap& bitmap, int x, int y)
 {
 	if (bitmap.GetWidth() <= 0 || bitmap.GetHeight() <= 0) {
 		return;
@@ -1211,7 +1073,7 @@ void SDL3Backend::DrawBitmap(Bitmap& bitmap, int x, int y)
 	glDeleteTextures(1, &tempTexture);
 }
 
-void SDL3Backend::DrawEffectRect(int x, int y, int width, int height, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
+void SDL3GraphicsBackend::DrawEffectRect(int x, int y, int width, int height, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
 {
 	if (width <= 0 || height <= 0) {
 		return;
@@ -1291,7 +1153,7 @@ void SDL3Backend::DrawEffectRect(int x, int y, int width, int height, int rgbCoe
 	}
 }
 
-void SDL3Backend::LoadFont(int id)
+void SDL3GraphicsBackend::LoadFont(int id)
 {
 	//check if font already exists
 	if (fonts.find(id) != fonts.end()) {
@@ -1313,7 +1175,8 @@ void SDL3Backend::LoadFont(int id)
 	}
 	else {
 		//load buffer from pak file
-		std::shared_ptr<std::vector<uint8_t>> buffer = std::make_shared<std::vector<uint8_t>>(pakFile.GetData("fonts/" + fontInfo->FontFileName));
+		if (!backend->platform) return;
+		std::shared_ptr<std::vector<uint8_t>> buffer = std::make_shared<std::vector<uint8_t>>(backend->platform->GetPakFile().GetData("fonts/" + fontInfo->FontFileName));
 		if (buffer->empty()) {
 			std::cerr << "PakFile::GetData Error: " << "Font with file name " << fontInfo->FontFileName << " not found" << std::endl;
 			return;
@@ -1348,7 +1211,7 @@ void SDL3Backend::LoadFont(int id)
 	fonts[id] = font;
 }
 
-void SDL3Backend::UnloadFont(int id)
+void SDL3GraphicsBackend::UnloadFont(int id)
 {
 	auto it = fonts.find(id);
 	if (it != fonts.end()) {
@@ -1378,7 +1241,7 @@ void SDL3Backend::UnloadFont(int id)
 	}
 }
 
-void SDL3Backend::DrawText(FontInfo* fontInfo, int x, int y, int color, const std::string& text, int objectHandle, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
+void SDL3GraphicsBackend::DrawText(FontInfo* fontInfo, int x, int y, int color, const std::string& text, int objectHandle, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
 {
 	if (fontInfo == nullptr) {
 		return;
@@ -1435,7 +1298,7 @@ void SDL3Backend::DrawText(FontInfo* fontInfo, int x, int y, int color, const st
 		if (modifiedText.find_first_not_of(" \n\r\t") == std::string::npos) {
 			return;
 		}
-		
+
 		SDL_Surface* surface = TTF_RenderText_Blended_Wrapped(font, modifiedText.c_str(), 0, RGBToSDLColor(color), 0);
 		if (surface == nullptr) {
 			std::cerr << "TTF_RenderText_Blended_Wrapped Error: " << SDL_GetError() << std::endl;
@@ -1483,7 +1346,7 @@ void SDL3Backend::DrawText(FontInfo* fontInfo, int x, int y, int color, const st
 	RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height));
 }
 
-void SDL3Backend::RemoveOldTextCache()
+void SDL3GraphicsBackend::RemoveOldTextCache()
 {
 	if (textCache.empty()) {
 		return;
@@ -1496,7 +1359,7 @@ void SDL3Backend::RemoveOldTextCache()
 	textCache.erase(oldestIt);
 }
 
-void SDL3Backend::ClearTextCacheForFont(int fontHandle)
+void SDL3GraphicsBackend::ClearTextCacheForFont(int fontHandle)
 {
 	auto it = textCache.begin();
 	while (it != textCache.end()) {
@@ -1511,484 +1374,27 @@ void SDL3Backend::ClearTextCacheForFont(int fontHandle)
 	}
 }
 
-// Sample Start
-
-bool SDL3Backend::LoadSample(int id, int channel) {
-	std::cout << "Loading Sample : " << id << "\n";
-	if (id < 0) return false;
-	if (channels[channel].data) {
-		std::cout << "Sample already loaded, returning true.\n";
-		return true;
-	}
-	SoundInfo* soundInfo = SoundBank::Instance().GetSound(id);
-	if (!soundInfo) {
-		std::cerr << "SoundBank Error: Sound ID " << id << " not found!" << std::endl;
-		return false;
-	}
-	std::cout << soundInfo->Type << "\n";
-	std::vector<uint8_t> data = pakFile.GetData("sounds/" + std::to_string(id) + "." + soundInfo->Type);
-	if (data.empty()) {
-		std::cerr << "PakFile::GetData Error: Sample with id " << id << " not found" << std::endl;
-		return false;
-	}
-	if (soundInfo->Type == "wav") {
-		SDL_IOStream* stream = SDL_IOFromMem(data.data(), data.size());
-		if (!SDL_LoadWAV_IO(stream, true, &channels[channel].spec, &channels[channel].data, &channels[channel].data_len)) {
-			std::cout << "SDL_LoadWAV_IO Error (WAV) : " << SDL_GetError() << std::endl;
-			return false;
-		}
-		std::cout << "Loaded WAV Sample ID : " << id << "\n";
-	}
-	else if (soundInfo->Type == "ogg") {
-		int channels, samplerate;
-		short* output = nullptr;
-		int numSamples = stb_vorbis_decode_memory(data.data(), data.size(), &channels, &samplerate, &output);
-		if (numSamples <= 0 || !output) {
-			std::cout << "stb_vorbis_decode_memory failed.\n";
-			return false;
-		}
-		int totalSamples = numSamples * channels;
-		this->channels[channel].data_len = totalSamples * sizeof(short);
-		this->channels[channel].data = (Uint8*)SDL_malloc(this->channels[channel].data_len);
-		SDL_memcpy(this->channels[channel].data, output, this->channels[channel].data_len);
-		this->channels[channel].spec.freq = samplerate;
-		this->channels[channel].spec.channels = channels;
-		this->channels[channel].spec.format = SDL_AUDIO_S16;
-		free(output);
-		std::cout << "Loaded OGG Sample ID : " << id << "\n";
-	}
-	else if (soundInfo->Type == "mp3") {
-		drmp3 mp3;
-		if (!drmp3_init_memory(&mp3, data.data(), data.size(), NULL)) {
-			std::cout << "Failed to decode mp3 data.\n";
-			drmp3_uninit(&mp3);
-			return false;
-		}
-		drmp3_uint64 frameCount = drmp3_get_pcm_frame_count(&mp3);
-		if (frameCount == 0) {
-			std::cout << "No sample frames in MP3\n";
-			drmp3_uninit(&mp3);
-			return false;
-		}
-		int totalSamples = static_cast<int>(frameCount * mp3.channels);
-		Uint32 dataLen = totalSamples * sizeof(int16_t);
-		channels[channel].data = (Uint8*)SDL_malloc(dataLen);
-		drmp3_uint64 framesRead = drmp3_read_pcm_frames_s16(&mp3, frameCount, (drmp3_int16*)channels[channel].data);
-		if (!channels[channel].data) {
-			std::cout << "Bad MP3 Data\n";
-			SDL_free(channels[channel].data);
-			drmp3_uninit(&mp3);
-			return false;
-		}
-		channels[channel].data_len = dataLen;
-		channels[channel].spec.channels = mp3.channels;
-		channels[channel].spec.format = SDL_AUDIO_S16;
-		channels[channel].spec.freq = mp3.sampleRate;
-		drmp3_uninit(&mp3);
-	}
-	else {
-		std::cout << "Audio Data Type" << soundInfo->Type << "not supported.\n";
-		return false;
-	}
-	channels[channel].name = soundInfo->Name;
-	return true;
-}
-bool SDL3Backend::LoadSampleFile(std::string path) {
-	std::cout << "Loading Sample File : " << path << "\n";
-	std::filesystem::path fullPath = path;
-	std::string type = fullPath.extension().string();
-	SampleFile sampleFile;
-	if (type == ".wav") {
-		if (!SDL_LoadWAV(path.c_str(), &sampleFile.spec, &sampleFile.data, &sampleFile.data_len)) {
-			std::cout << "Failed to load WAV file : " << SDL_GetError() << "\n";
-			return false;
-		}
-		std::cout << "Loaded WAV Sample File : " << path << "\n";
-	}
-	else if (type == ".ogg") {
-		int channels, samplerate;
-		short* output = nullptr;
-		int numSamples = stb_vorbis_decode_filename(path.c_str(), &channels, &samplerate, &output);
-		if (numSamples <= 0 || !output) {
-			std::cout << "Failed to load OGG file : " << path << "\n";
-			return false;
-		}
-		int totalSamples = numSamples * channels;
-		sampleFile.data_len = totalSamples * sizeof(short);
-		sampleFile.data = (Uint8*)SDL_malloc(sampleFile.data_len);
-		SDL_memcpy(sampleFile.data, output, sampleFile.data_len);
-		sampleFile.spec.freq = samplerate;
-		sampleFile.spec.format = SDL_AUDIO_S16;
-		sampleFile.spec.channels = channels;
-		free(output);
-		std::cout << "Loaded OGG file : " << path << "\n";
-	}
-	else {
-		std::cout << "Audio File" << type << "not supported.\n";
-		return false;
-	}
-	sampleFile.pathName = path;
-	sampleFiles.emplace(sampleFile.pathName, sampleFile);
-	return true;
-}
-int SDL3Backend::FindSample(std::string name) {
-	SoundInfo* soundInfo = SoundBank::Instance().GetSoundName(name);
-	if (soundInfo) {
-		if (soundInfo->Name == name) return soundInfo->Handle;
-	}
-	else std::cout << "Failed to find Sound " << name << "\n";
-	return -1;
-}
-
-void SDL3Backend::PlaySample(int id, int channel, int loops, int freq, bool uninterruptable, float volume, float pan) {
-	bool replaceSample = false;
-	bool channelsFilled = false;
-	bool channelFound = false;
-	if (channel < 1 || channel >= SDL_arraysize(channels)) {
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (!channels[i].stream || !channels[i].data || !channels[i].lock) {
-				channel = i;
-				channelFound = true;
-				break;
-			}
-		}
-		if (!channelFound) {
-			channelsFilled = true;
-			channel = 48;
-		}
-		channels[channel].uninterruptable = uninterruptable;
-	}
-	else { // Channel is given.
-		channels[channel].uninterruptable = uninterruptable;
-		if (channels[channel].uninterruptable) replaceSample = true;
-	}
-	if (replaceSample) {
-		StopSample(channel, true);
-	}
-	if (!LoadSample(id, channel)) return;
-
-	if (channels[channel].stream) StopSample(channel, true);
-	channels[channel].stream = SDL_CreateAudioStream(&channels[channel].spec, &spec);
-	if (!channels[channel].stream) {
-		std::cerr << "SDL_CreateAudioStream error : " << SDL_GetError() << "\n";
-		channels[channel].stream = nullptr;
-		return;
-	}
-	channels[channel].loop = (loops <= 0);
-	channels[channel].position = 0;
-	channels[channel].pause = false;
-	if (channels[channel].loop) SDL_PutAudioStreamData(channels[channel].stream, channels[channel].data, channels[channel].data_len);
-	else {
-		for (int i = 1; i <= loops; i++) {
-			SDL_PutAudioStreamData(channels[channel].stream, channels[channel].data, channels[channel].data_len);
-		}
-	}
-	if (volume > -1) channels[channel].volume = volume;
-	if (pan != -2 ) channels[channel].pan = pan;
-	if (freq > 0 || freq != NULL) SetSampleFreq(freq, channel, true);
-	channels[channel].curHandle = id;
-	SetSampleVolume(mainVol, channel, true); // Set volume to the main one.
-	
-	std::cout << "Sample ID " << id << " is now playing at channel " << channel << ".\n";
-}
-void SDL3Backend::PlaySampleFile(std::string path, int channel, int loops) {
-	auto it = sampleFiles.find(path);
-	if (it == sampleFiles.end()) {
-		std::cout << "Can't find sample path.\n";
-		return;
-	}
-	SampleFile& sampleFile = it->second;
-	if (channels[channel].stream || channels[channel].data || channels[channel].lock || channels[channel].uninterruptable) return;
-	StopSample(channel, true);
-	channels[channel].data = (Uint8*)SDL_malloc(sampleFile.data_len);
-	SDL_memcpy(channels[channel].data, sampleFile.data, sampleFile.data_len);
-	channels[channel].data_len = sampleFile.data_len;
-	channels[channel].spec = sampleFile.spec;
-
-	channels[channel].stream = SDL_CreateAudioStream(&channels[channel].spec, &spec);
-	channels[channel].loop = (loops <= 0);
-	channels[channel].position = 0;
-	channels[channel].pause = false;
-	channels[channel].name = sampleFile.pathName;
-	channels[channel].uninterruptable = false;
-	if (channels[channel].loop) SDL_PutAudioStreamData(channels[channel].stream, channels[channel].data, channels[channel].data_len);
-	else {
-		for (int i = 1; i <= loops; i++) {
-			SDL_PutAudioStreamData(channels[channel].stream, channels[channel].data, channels[channel].data_len);
-		}
-	}
-	SetSampleVolume(mainVol, channel, true);
-	DiscardSampleFile(path);
-}
-void SDL3Backend::DiscardSampleFile(std::string path) {
-	auto it = sampleFiles.find(path);
-	if (it == sampleFiles.end()) {
-		std::cout << "Can't find sample path.\n";
-		return;
-	}
-	SampleFile& sampleFile = it->second;
-	if (sampleFile.data) {
-		SDL_free(sampleFile.data);
-		sampleFile.data = nullptr;
-	}
-	sampleFiles.erase(it);
-}
-// ALL SAMPLE CONDITIONS HERE
-
-bool SDL3Backend::SampleState(int id, bool channel, bool pause) {
-	if (id == -1 && !channel && !pause) { // No Sample is playing
-		int countStream = 0;
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (channels[i].stream) countStream++;
-		}
-		if (countStream == 0) return true;
-		else return false;
-	}
-	if (channel) { // Check if channel is not playing/paused
-		if (id < 1 || id >= SDL_arraysize(channels)) return false;
-		if (pause && channels[id].pause) return true;
-		if (!channels[id].stream && !pause) return true;
-	}
-	if (id > -1 && !channel) { // Check for specific sample not playing/paused.
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (channels[i].curHandle == id) {
-				if (pause && channels[i].pause) {
-					return true;
-				}
-				if (!channels[i].stream && !pause) return true;
-			}
-			else { 
-				if (!pause) return true;
-				else return false;
-			}
-		}
-	}
-	return false;
-}
-void SDL3Backend::PauseSample(int id, bool channel, bool pause) {
-	if (id == -1 && !channel) { // Pause/Resume all sounds
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			PauseSample(i, true, pause);
-		}
-	}
-	if (channel) { // Pause/Resume specific channel
-		if (id < 1 || id >= SDL_arraysize(channels)) return;
-		if (channels[id].stream) {
-			if (pause) {
-				SDL_PauseAudioStreamDevice(channels[id].stream);
-				channels[id].pause = true;
-			}
-			else {
-				SDL_ResumeAudioStreamDevice(channels[id].stream);
-				channels[id].pause = false;
-			}
-		}
-		return;
-	}
-	if (id > -1 && !channel) { // Pause/Resume sample handle.
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (channels[i].curHandle == id) PauseSample(i, true, pause);
-		}
-	}
-}
-void SDL3Backend::SetSamplePan(float pan, int id, bool channel) {
-	bool setMain = false;
-	pan /= 100;
-	if (pan < -1.0f) pan = -1.0f;
-	if (pan > 1.0f) pan = 1.0f;
-	if (!channel && id <= -1) { // Set Main Pan
-		setMain = true;
-		mainPan = pan;
-		for (int i = 1; i < SDL_arraysize(channels); ++i) {
-			channels[i].pan = channels[i].pan + mainPan;
-		}
-	}
-	if (channel) { // Set Channel Pan
-		setMain = false;
-		if (id < 1 || id >= SDL_arraysize(channels)) return;
-		if (channels[id].stream) channels[id].pan = pan;
-	}
-	if (id > -1 && !channel) { // Set Sample Pan
-		setMain = false;
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (channels[i].curHandle == id) channels[i].pan = pan;
-			else continue;
-		}
-	}
-}
-int SDL3Backend::GetSamplePan(int id, bool channel) {
-	if (id == -1 && !channel) return mainPan;
-	if (channel) { // Get Channel Volume
-		if (id < 1 || id >= SDL_arraysize(channels)) return 0;
-		return channels[id].pan * 100;
-	}
-	if (!channel && id >= 0) {
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (channels[i].curHandle == id) return channels[i].pan * 100;
-		}
-	}
-	return 0;
-}
-void SDL3Backend::SetSamplePos(int pos, int id, bool channel)
+SDL_Color SDL3GraphicsBackend::RGBToSDLColor(int color)
 {
-	if (channel) {
-		if (id < 0 || id >= SDL_arraysize(channels)) return;
-		if (!channels[id].data || !channels[id].stream) return;
-		int length = channels[id].data_len / (sizeof(float) * 2);
-		pos = SDL_clamp(pos, 0, length);
-		channels[id].position = pos;
-		SDL_ClearAudioStream(channels[id].stream);
-		Uint8* positionData = channels[id].data + pos * sizeof(float) * 2;
-		Uint32 positionLength = channels[id].data_len - pos * sizeof(float) * 2;
-		SDL_PutAudioStreamData(channels[id].stream, positionData, positionLength);
-	}
-	else {
-		if (id < 0) return;
-		for (int i = 0; i < SDL_arraysize(channels); ++i) {
-			if (channels[i].curHandle == id) SetSamplePos(pos, i, true);
-		}
-	}
-}
-void SDL3Backend::SetSampleVolume(float volume, int id, bool channel) {
-	bool setMain = false;
-	if (id == -1 && !channel) { // Set Main Volume
-		mainVol = volume;
-		setMain = true;
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			SetSampleVolume(volume, i, true);
-		}
-	}
-	if (channel) { // Set Channel Volume
-		if (id < 1 || id >= SDL_arraysize(channels)) return;
-		if (channels[id].stream) {
-			channels[id].volume = volume / 100;
-			if (!setMain) channels[id].volume = volume / 100;
-			else {
-				mainVol = (volume / 100) * channels[id].volume;
-				channels[id].volume = mainVol;
-			}	
-		}
-	}
-	if (id > -1 && !channel) { // Set Sample Volume
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (channels[i].curHandle == id) SetSampleVolume(volume, i, true);
-			else continue;
-		}
-	}
-}
-void SDL3Backend::SetSampleFreq(int freq, int id, bool channel) {
-	if (channel) { // Set Channel Freq
-		if (id < 1 || id >= SDL_arraysize(channels)) return;
-		if (channels[id].stream) {
-			if (freq > 0) SDL_SetAudioStreamFrequencyRatio(channels[id].stream, static_cast<float>(freq) / static_cast<float>(channels[id].spec.freq));
-			else SDL_SetAudioStreamFrequencyRatio(channels[id].stream, 1.0f);
-		}
-	}
-	if (id > -1 && !channel) { // Set Sample Freq
-		for (int i = 1; i < SDL_arraysize(channels); ++i) {
-			if (channels[i].curHandle == id) SetSampleFreq(freq, i, true);
-			else continue;
-		}
-	}
-}
-int SDL3Backend::GetSampleFreq(int id, bool channel) {
-	if (channel) { // Get Channel Freq
-		if (id < 1 || id >= SDL_arraysize(channels)) return 0;
-		return channels[id].spec.freq * SDL_GetAudioStreamFrequencyRatio(channels[id].stream);
-	}
-	if (id > -1 && !channel) {
-		for (int i = 1; i < SDL_arraysize(channels); ++i) {
-			if (channels[i].curHandle == id) return channels[i].spec.freq * SDL_GetAudioStreamFrequencyRatio(channels[id].stream);
-		}
-	}
-	return 0;
-}
-int SDL3Backend::GetSampleVolume(int id) {
-	if (id == -1) return mainVol;
-	if (id > -1) { // Get Sample Volume
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (channels[i].curHandle == id && channels[i].stream) return channels[i].volume;
-		}
-	}
-	return 0;
+	return SDL_Color{
+		static_cast<Uint8>((color >> 16) & 0xFF),
+		static_cast<Uint8>((color >> 8) & 0xFF),
+		static_cast<Uint8>(color & 0xFF),
+		255
+	};
 }
 
-int SDL3Backend::GetSampleVolume(std::string name) {
-	return GetSampleVolume(FindSample(name));
-}
-
-int SDL3Backend::GetChannelVolume(int id) {
-	if (id < 1 || id >= SDL_arraysize(channels)) return -1;
-	return channels[id].volume;
-}
-
-void SDL3Backend::StopSample(int id, bool channel) {
-	if (id == -1) { // Stop any sample
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			StopSample(i, true);
-		}
-		return;
-	}
-	if (channel) { // check for the channel
-		if (id < 1 || id >= SDL_arraysize(channels)) return;
-		if (channels[id].stream) {
-			std::cout << "Stopping Sample : " << id << "\n";
-			SDL_UnbindAudioStream(channels[id].stream);
-			SDL_DestroyAudioStream(channels[id].stream);
-			channels[id].stream = nullptr;
-			if (channels[id].data) {
-				SDL_free(channels[id].data);
-			}
-			channels[id].data = nullptr;
-			channels[id].data_len = 0;
-		}
-		channels[id].curHandle = -1;
-		channels[id].uninterruptable = false;
-		channels[id].position = 0;
-		return;
-	}
-	if (!channel && id > -1) { // check for sample handle
-		for (int i = 1; i < SDL_arraysize(channels); i++) {
-			if (channels[i].curHandle == id) StopSample(i, true);
-		}
-	}
-}
-void SDL3Backend::UpdateSample() {
-	if (!Application::Instance().GetAppData()->GetSampleFocus()) {
-		if (windowFocused) SDL_SetAudioDeviceGain(audio_device, 1.0f);
-		else SDL_SetAudioDeviceGain(audio_device, 0.0f);
-	}
-	for (int i = 1; i < SDL_arraysize(channels); ++i) {
-		channels[i].volume = SDL_clamp(channels[i].volume, 0, 1); // Clamp Volume
-		if (channels[i].stream) {
-			if (channels[i].finished) {
-				channels[i].finished = false;
-				if (!channels[i].loop) {
-					StopSample(i, true);
-					continue;
-				}
-				else SDL_PutAudioStreamData(channels[i].stream, channels[i].data, channels[i].data_len);
-			}
-		}
-		else continue;
-	}
-}
-// Sample End
-void SDL3Backend::GetKeyboardState(uint8_t* outBuffer)
+SDL_Color SDL3GraphicsBackend::RGBAToSDLColor(int color)
 {
-#ifdef _DEBUG
-	if (DEBUG_UI.IsEnabled() && ImGui::GetIO().WantCaptureKeyboard) return;
-#endif
-
-	//return the keyboard state in a new array which matches the Fusion key codes
-	const bool* keyboardState = SDL_GetKeyboardState(nullptr);
-	for (int i = 0; i < 256; i++)
-	{
-		outBuffer[i] = keyboardState[FusionToSDLKey(i)] ? 1 : 0;
-	}
+	return SDL_Color{
+		static_cast<Uint8>((color >> 16) & 0xFF),
+		static_cast<Uint8>((color >> 8) & 0xFF),
+		static_cast<Uint8>(color & 0xFF),
+		static_cast<Uint8>((color >> 24) & 0xFF)
+	};
 }
 
-SDL_FRect SDL3Backend::CalculateRenderTargetRect()
+SDL_FRect SDL3GraphicsBackend::CalculateRenderTargetRect()
 {
 	// get actual current window size
 	int currentWindowWidth, currentWindowHeight;
@@ -2023,330 +1429,5 @@ SDL_FRect SDL3Backend::CalculateRenderTargetRect()
 	}
 	
 	return rect;
-}
-
-int SDL3Backend::GetMouseX()
-{
-	float x;
-#ifndef PLATFORM_WEB
-	int windowX;
-	SDL_GetWindowPosition(window, &windowX, NULL);
-	SDL_GetGlobalMouseState(&x, NULL);
-	float mouseX = x - windowX;
-#else
-	float mouseX;
-	SDL_GetMouseState(&mouseX, NULL);
-#endif
-	
-	//get mouse position relative to render target
-	SDL_FRect rect = CalculateRenderTargetRect();
-	int windowWidth = std::min(Application::Instance().GetAppData()->GetWindowWidth(), Application::Instance().GetCurrentFrame()->Width);
-	float relativeX = (mouseX - rect.x) * (windowWidth / rect.w);
-	return static_cast<int>(relativeX);
-}
-
-int SDL3Backend::GetMouseY()
-{
-	float y;
-#ifndef PLATFORM_WEB
-	int windowY;
-	SDL_GetWindowPosition(window, NULL, &windowY);
-	SDL_GetGlobalMouseState(NULL, &y);
-	float mouseY = y - windowY;
-#else
-	float mouseY;
-	SDL_GetMouseState(NULL, &mouseY);
-#endif
-
-	//get mouse position relative to render target
-	SDL_FRect rect = CalculateRenderTargetRect();
-	int windowHeight = std::min(Application::Instance().GetAppData()->GetWindowHeight(), Application::Instance().GetCurrentFrame()->Height);
-	float relativeY = (mouseY - rect.y) * (windowHeight / rect.h);
-	return static_cast<int>(relativeY);
-}
-
-void SDL3Backend::SetMouseX(int x)
-{
-	SDL_FRect rect = CalculateRenderTargetRect();
-	int renderTargetWidth = std::min(Application::Instance().GetAppData()->GetWindowWidth(), Application::Instance().GetCurrentFrame()->Width);
-	
-	float windowX = rect.x + (x * rect.w / renderTargetWidth);
-	float windowY;
-	
-	SDL_GetMouseState(NULL, &windowY);
-	SDL_WarpMouseInWindow(window, windowX, windowY);
-}
-
-void SDL3Backend::SetMouseY(int y)
-{
-	SDL_FRect rect = CalculateRenderTargetRect();
-	int renderTargetHeight = std::min(Application::Instance().GetAppData()->GetWindowHeight(), Application::Instance().GetCurrentFrame()->Height);
-	
-	float windowX;
-	float windowY = rect.y + (y * rect.h / renderTargetHeight);
-	
-	SDL_GetMouseState(&windowX, NULL);
-	SDL_WarpMouseInWindow(window, windowX, windowY);
-}
-
-int SDL3Backend::GetMouseWheelMove()
-{
-	SDL_Event event;
-	while (SDL_PollEvent(&event)) {
-		if (event.type == SDL_EVENT_MOUSE_WHEEL) {
-			return event.wheel.y;
-		}
-	}
-	return 0;
-}
-
-uint32_t SDL3Backend::GetMouseState()
-{
-#ifdef _DEBUG
-	if (DEBUG_UI.IsEnabled() && ImGui::GetIO().WantCaptureMouse) return 0;
-#endif
-
-	return SDL_GetMouseState(nullptr, nullptr);
-}
-
-void SDL3Backend::HideMouseCursor()
-{
-	SDL_HideCursor();
-}
-
-void SDL3Backend::ShowMouseCursor()
-{
-	SDL_ShowCursor();
-}
-
-SDL_Color SDL3Backend::RGBToSDLColor(int color)
-{
-	return SDL_Color{
-		static_cast<Uint8>((color >> 16) & 0xFF),
-		static_cast<Uint8>((color >> 8) & 0xFF),
-		static_cast<Uint8>(color & 0xFF),
-		255
-	};
-}
-
-SDL_Color SDL3Backend::RGBAToSDLColor(int color)
-{
-	return SDL_Color{
-		static_cast<Uint8>((color >> 16) & 0xFF),
-		static_cast<Uint8>((color >> 8) & 0xFF),
-		static_cast<Uint8>(color & 0xFF),
-		static_cast<Uint8>((color >> 24) & 0xFF)
-	};
-}
-
-int SDL3Backend::FusionToSDLKey(short key)
-{
-	switch (key)
-	{
-		default:
-			return SDL_SCANCODE_UNKNOWN;
-		case 0x08:
-			return SDL_SCANCODE_BACKSPACE;
-		case 0x09:
-			return SDL_SCANCODE_TAB;
-		case 0x0D:
-			return SDL_SCANCODE_RETURN;
-		case 0x10:
-			return SDL_SCANCODE_LSHIFT;
-		case 0x11:
-			return SDL_SCANCODE_LCTRL;
-		case 0x13:
-			return SDL_SCANCODE_PAUSE;
-		case 0x14:
-			return SDL_SCANCODE_CAPSLOCK;
-		case 0x1B:
-			return SDL_SCANCODE_ESCAPE;
-		case 0x20:
-			return SDL_SCANCODE_SPACE;
-		case 0x21:
-			return SDL_SCANCODE_PAGEUP;
-		case 0x22:
-			return SDL_SCANCODE_PAGEDOWN;
-		case 0x23:
-			return SDL_SCANCODE_END;
-		case 0x24:
-			return SDL_SCANCODE_HOME;
-		case 0x25:
-			return SDL_SCANCODE_LEFT;
-		case 0x26:
-			return SDL_SCANCODE_UP;
-		case 0x27:
-			return SDL_SCANCODE_RIGHT;
-		case 0x28:
-			return SDL_SCANCODE_DOWN;
-		case 0x2D:
-			return SDL_SCANCODE_INSERT;
-		case 0x2E:
-			return SDL_SCANCODE_DELETE;
-		case 0x30:
-			return SDL_SCANCODE_0;
-		case 0x31:
-			return SDL_SCANCODE_1;
-		case 0x32:
-			return SDL_SCANCODE_2;
-		case 0x33:
-			return SDL_SCANCODE_3;
-		case 0x34:
-			return SDL_SCANCODE_4;
-		case 0x35:
-			return SDL_SCANCODE_5;
-		case 0x36:
-			return SDL_SCANCODE_6;
-		case 0x37:
-			return SDL_SCANCODE_7;
-		case 0x38:
-			return SDL_SCANCODE_8;
-		case 0x39:
-			return SDL_SCANCODE_9;
-		case 0x41:
-			return SDL_SCANCODE_A;
-		case 0x42:
-			return SDL_SCANCODE_B;
-		case 0x43:
-			return SDL_SCANCODE_C;
-		case 0x44:
-			return SDL_SCANCODE_D;
-		case 0x45:
-			return SDL_SCANCODE_E;
-		case 0x46:
-			return SDL_SCANCODE_F;
-		case 0x47:
-			return SDL_SCANCODE_G;
-		case 0x48:
-			return SDL_SCANCODE_H;
-		case 0x49:
-			return SDL_SCANCODE_I;
-		case 0x4A:
-			return SDL_SCANCODE_J;
-		case 0x4B:
-			return SDL_SCANCODE_K;
-		case 0x4C:
-			return SDL_SCANCODE_L;
-		case 0x4D:
-			return SDL_SCANCODE_M;
-		case 0x4E:
-			return SDL_SCANCODE_N;
-		case 0x4F:
-			return SDL_SCANCODE_O;
-		case 0x50:
-			return SDL_SCANCODE_P;
-		case 0x51:
-			return SDL_SCANCODE_Q;
-		case 0x52:
-			return SDL_SCANCODE_R;
-		case 0x53:
-			return SDL_SCANCODE_S;
-		case 0x54:
-			return SDL_SCANCODE_T;
-		case 0x55:
-			return SDL_SCANCODE_U;
-		case 0x56:
-			return SDL_SCANCODE_V;
-		case 0x57:
-			return SDL_SCANCODE_W;
-		case 0x58:
-			return SDL_SCANCODE_X;
-		case 0x59:
-			return SDL_SCANCODE_Y;
-		case 0x5A:
-			return SDL_SCANCODE_Z;
-		case 0x60:
-			return SDL_SCANCODE_KP_0;
-		case 0x61:
-			return SDL_SCANCODE_KP_1;
-		case 0x62:
-			return SDL_SCANCODE_KP_2;
-		case 0x63:
-			return SDL_SCANCODE_KP_3;
-		case 0x64:
-			return SDL_SCANCODE_KP_4;
-		case 0x65:
-			return SDL_SCANCODE_KP_5;
-		case 0x66:
-			return SDL_SCANCODE_KP_6;
-		case 0x67:
-			return SDL_SCANCODE_KP_7;
-		case 0x68:
-			return SDL_SCANCODE_KP_8;
-		case 0x69:
-			return SDL_SCANCODE_KP_9;
-		case 0x6A:
-			return SDL_SCANCODE_KP_MULTIPLY;
-		case 0x6B:
-			return SDL_SCANCODE_KP_PLUS;
-		case 0x6D:
-			return SDL_SCANCODE_KP_MINUS;
-		case 0x6E:
-			return SDL_SCANCODE_KP_PERIOD;
-		case 0x6F:
-			return SDL_SCANCODE_KP_DIVIDE;
-		case 0x70:
-			return SDL_SCANCODE_F1;
-		case 0x71:
-			return SDL_SCANCODE_F2;
-		case 0x72:
-			return SDL_SCANCODE_F3;
-		case 0x73:
-			return SDL_SCANCODE_F4;
-		case 0x74:
-			return SDL_SCANCODE_F5;
-		case 0x75:
-			return SDL_SCANCODE_F6;
-		case 0x76:
-			return SDL_SCANCODE_F7;
-		case 0x77:
-			return SDL_SCANCODE_F8;
-		case 0x78:
-			return SDL_SCANCODE_F9;
-		case 0x79:
-			return SDL_SCANCODE_F10;
-		case 0x7A:
-			return SDL_SCANCODE_F11;
-		case 0x7B:
-			return SDL_SCANCODE_F12;
-		case 0x90:
-			return SDL_SCANCODE_NUMLOCKCLEAR;
-		case 0xBA:
-			return SDL_SCANCODE_SEMICOLON;
-		case 0xBB:
-			return SDL_SCANCODE_EQUALS;
-		case 0xBC:
-			return SDL_SCANCODE_COMMA;
-		case 0xBD:
-			return SDL_SCANCODE_MINUS;
-		case 0xBE:
-			return SDL_SCANCODE_PERIOD;
-		case 0xBF:
-			return SDL_SCANCODE_SLASH;
-		case 0xC0:
-			return SDL_SCANCODE_GRAVE;
-		case 0xDB:
-			return SDL_SCANCODE_LEFTBRACKET;
-		case 0xDC:
-			return SDL_SCANCODE_BACKSLASH;
-		case 0xDD:
-			return SDL_SCANCODE_RIGHTBRACKET;
-		case 0xDE:
-			return SDL_SCANCODE_APOSTROPHE;
-	}
-}
-
-float SDL3Backend::GetTimeDelta()
-{
-	static Uint32 previousTicks = SDL_GetTicks();
-	Uint32 currentTicks = SDL_GetTicks();
-	float delta = (currentTicks - previousTicks) / 1000.0f;
-	previousTicks = currentTicks;
-	return delta;
-}
-
-void SDL3Backend::Delay(unsigned int ms)
-{
-	SDL_Delay(ms);
 }
 #endif

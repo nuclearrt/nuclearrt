@@ -32,8 +32,7 @@ void Application::Initialize()
 		backend = std::make_shared<Backend>();
 	#endif
 
-	backend->Initialize();
-	std::cout << "Initialized Backend: " << backend->GetName() << std::endl;
+	std::cout << "Initialized Backend: " << backend->platform->GetName() << std::endl;
 
 	input = std::make_shared<Input>();
 	input->Reset();
@@ -54,7 +53,7 @@ void Application::Update()
 	}
 
 	input->Update();
-	backend->UpdateSample();
+	backend->audio->UpdateSample();
 	currentFrame->Update();
 }
 
@@ -65,9 +64,9 @@ void Application::Draw()
 		return;
 	}
 
-	backend->BeginDrawing();
+	backend->graphics->BeginDrawing();
 	currentFrame->Draw();
-	backend->EndDrawing();
+	backend->graphics->EndDrawing();
 }
 
 void Application::Shutdown()
@@ -89,20 +88,20 @@ void Application::Run()
 	unsigned int frameStart;
 	int frameTime;
 	
-	while (!backend->ShouldQuit())
+	while (!backend->platform->ShouldQuit())
 	{
 		int targetFPS = appData->GetTargetFPS();
 		float targetFrameTime = 1000.0f / targetFPS;
 		
-		frameStart = backend->GetTicks();
+		frameStart = backend->platform->GetTicks();
 		
 		Loop();
 		
-		frameTime = backend->GetTicks() - frameStart;
+		frameTime = backend->platform->GetTicks() - frameStart;
 		
 		if (frameTime < targetFrameTime)
 		{
-			backend->Delay(targetFrameTime - frameTime);
+			backend->platform->Delay(targetFrameTime - frameTime);
 		}
 
 		if (currentState == GameState::EndApplication || currentFrame == nullptr)
@@ -178,7 +177,7 @@ void Application::LoadFrame(int frameIndex)
 		currentFrame->ApplyGlobalObjectData(globalObjectData);
 	}
 	
-	backend->ShowMouseCursor();
+	backend->input->ShowMouseCursor();
 
 	std::vector<unsigned int> newImagesUsed = currentFrame->GetImagesUsed();
 	std::vector<unsigned int> newFontsUsed = currentFrame->GetFontsUsed();
@@ -204,29 +203,29 @@ void Application::LoadFrame(int frameIndex)
 	//unload the images that are no longer used
 	for (unsigned int image : imagesToUnload)
 	{
-		backend->UnloadTexture(image);
+		backend->graphics->UnloadTexture(image);
 	}
 
 	//load the images that are new
 	for (unsigned int image : newImagesUsed)
 	{
-		backend->LoadTexture(image);
+		backend->graphics->LoadTexture(image);
 	}
 
 	//load the fonts that are new
 	for (unsigned int font : newFontsUsed)
 	{
-		backend->LoadFont(font);
+		backend->graphics->LoadFont(font);
 	}
 
 	//unload the fonts that are no longer used
 	for (unsigned int font : fontsToUnload)
 	{
-		backend->UnloadFont(font);
+		backend->graphics->UnloadFont(font);
 	}
 
 	std::cout << "Loaded frame " << frameIndex << std::endl;
-	if (!GetAppData()->GetSampleOverFrame()) backend->StopSample(-1, false);
+	if (!GetAppData()->GetSampleOverFrame()) backend->audio->StopSample(-1, false);
 }
 
 void Application::MergeGlobalObjectData(std::vector<ObjectGlobalData*> frameData)
