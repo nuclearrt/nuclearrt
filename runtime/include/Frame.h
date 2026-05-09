@@ -107,18 +107,71 @@ public:
 		return 0xFF000000 | (red << 16) | (green << 8) | blue;
 	}
 
-	int StringLength(std::string str) {
+	inline int StringLength(std::string str) {
 		return (int)str.length();
 	}
 
-	std::string StringLeft(std::string str, int length) {
+	inline std::string StringLeft(std::string str, int length) {
 		return str.substr(0, length);
 	}
 
-	std::string StringRight(std::string str, int length) {
+	inline std::string StringRight(std::string str, int length) {
 		return str.substr(str.length() - length);
 	}
 
+    inline std::string Hex(int v) {
+        char buf[16];
+        sprintf_s(buf, "%X", v);
+        return std::string(buf);
+    }
+
+    inline std::string Bin(int v) {
+        std::string r;
+        for (int i = 31; i >= 0; i--) {
+            if (v & (1 << i)) r += '1';
+            else if (!r.empty()) r += '0';
+        }
+        return r.empty() ? "0" : r;
+    }
+
+    inline std::string Mid(const std::string& str, int start, int length) {
+        if (start < 0) start = 0;
+        if (start >= (int)str.length()) return "";
+        return str.substr(start, length);
+    }
+
+    inline std::string Lower(std::string str) {
+        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+        return str;
+    }
+
+    inline std::string Upper(std::string str) {
+        std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+        return str;
+    }
+
+    inline int Find(const std::string& str, const std::string& find, int start) {
+        if (start < 0) start = 0;
+        auto pos = str.find(find, start);
+        return (pos == std::string::npos) ? -1 : (int)pos;
+    }
+
+    inline int ReverseFind(const std::string& str, const std::string& find, int start) {
+        auto pos = str.rfind(find, (start < 0 || start >= str.length()) ? std::string::npos : start);
+        return (pos == std::string::npos) ? -1 : (int)pos;
+    }
+
+    inline std::string ReplaceString(std::string str, const std::string& find, const std::string& replace) {
+        if (find.empty()) return str;
+        size_t pos = 0;
+        while ((pos = str.find(find, pos)) != std::string::npos) {
+            str.replace(pos, find.length(), replace);
+            pos += replace.length();
+        }
+        return str;
+    }
+
+    inline std::string NewLine() { return "\n"; }
 	int OAngle(ObjectInstance* instance, int xTarget, int yTarget) {
 		int distanceX  = xTarget - instance->X;
 		int distanceY  = yTarget - instance->Y;
