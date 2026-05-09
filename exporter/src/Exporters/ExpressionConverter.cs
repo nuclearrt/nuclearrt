@@ -43,44 +43,44 @@ public class ExpressionConverter
 
 	private static readonly Dictionary<(ObjectType, int), Func<Expression, string>> expressionsLookup = new()
 	{
-        //Player
+		//Player
 		{ (ObjectType.Player, 0), e => $"Application::Instance().GetAppData()->GetPlayerScore({e.ObjectInfo})" }, // Player Score
-        { (ObjectType.Player, 1), e => $"Application::Instance().GetAppData()->GetPlayerLives({e.ObjectInfo})" }, // Player Lives
+		{ (ObjectType.Player, 1), e => $"Application::Instance().GetAppData()->GetPlayerLives({e.ObjectInfo})" }, // Player Lives
 		{ (ObjectType.Player, 2), e => $"Application::Instance().GetInput()->GetControlType({e.ObjectInfo})" }, // Player Input device
 		// { (ObjectType.Player, 3), _ => "" }, // Key
 		// { (ObjectType.Player, 4), _ => "" }, // Player Name
 
-        //Keyboard / Mouse
-        { (ObjectType.Keyboard, 0), _ => "GetMouseX()" }, // XMouse
-        { (ObjectType.Keyboard, 1), _ => "GetMouseY()" }, // YMouse
-        { (ObjectType.Keyboard, 2), _ => "Application::Instance().GetInput()->GetMouseWheelMove()" }, // WheelDelta
+		//Keyboard / Mouse
+		{ (ObjectType.Keyboard, 0), _ => "GetMouseX()" }, // XMouse
+		{ (ObjectType.Keyboard, 1), _ => "GetMouseY()" }, // YMouse
+		{ (ObjectType.Keyboard, 2), _ => "Application::Instance().GetInput()->GetMouseWheelMove()" }, // WheelDelta
 
-        //Create
-        { (ObjectType.Create, 0), _ => $"ObjectInstances.size()" }, // Total Objects
+		//Create
+		{ (ObjectType.Create, 0), _ => $"ObjectInstances.size()" }, // Total Objects
 
-        //Timer
-        { (ObjectType.Timer, 0), _ => "GameTimer.GetTime()" }, // Timer
-        { (ObjectType.Timer, 1), _ => "GameTimer.GetHundreds()" }, // Hundreds
-        { (ObjectType.Timer, 2), _ => "GameTimer.GetSeconds()" }, // seconds
-        { (ObjectType.Timer, 3), _ => "GameTimer.GetHours()" }, // Hours
-        { (ObjectType.Timer, 4), _ => "GameTimer.GetMinutes()" }, // Minutes
-        { (ObjectType.Timer, 5), _ => $"0" }, // Event Index // TODO
+		//Timer
+		{ (ObjectType.Timer, 0), _ => "GameTimer.GetTime()" }, // Timer
+		{ (ObjectType.Timer, 1), _ => "GameTimer.GetHundreds()" }, // Hundreds
+		{ (ObjectType.Timer, 2), _ => "GameTimer.GetSeconds()" }, // seconds
+		{ (ObjectType.Timer, 3), _ => "GameTimer.GetHours()" }, // Hours
+		{ (ObjectType.Timer, 4), _ => "GameTimer.GetMinutes()" }, // Minutes
+		{ (ObjectType.Timer, 5), _ => $"0" }, // Event Index // TODO
 
-        //Game
-        { (ObjectType.Game, 0),  _ => $"Index + 1" }, // Frame
+		//Game
+		{ (ObjectType.Game, 0),  _ => $"Index + 1" }, // Frame
 		{ (ObjectType.Game, 2), _ => $"GetXLeftEdge()" }, // XLeftEdge
 		{ (ObjectType.Game, 3), _ => $"GetXRightEdge()" }, // XRightEdge
 		{ (ObjectType.Game, 4), _ => $"GetYTopEdge()" }, // YTopEdge
 		{ (ObjectType.Game, 5), _ => $"GetYBottomEdge()" }, // YBottomEdge
 		{ (ObjectType.Game, 6), _ => $"Width" }, // Frame Width
 		{ (ObjectType.Game, 7), _ => $"Height" }, // Frame Height
-        { (ObjectType.Game, 8),  _ => $"Index + 1" }, // Frame
-        { (ObjectType.Game, 10), _ => "Application::Instance().GetAppData()->GetTargetFPS()" }, // FrameRate // TODO: Verify this
+		{ (ObjectType.Game, 8),  _ => $"Index + 1" }, // Frame
+		{ (ObjectType.Game, 10), _ => "Application::Instance().GetAppData()->GetTargetFPS()" }, // FrameRate // TODO: Verify this
 		{ (ObjectType.Game, 11), _ => $"Width" }, // VirtualWidth
 		{ (ObjectType.Game, 12), _ => $"Height" }, // VirtualHeight
 		{ (ObjectType.Game, 13), _ => "BackgroundColor" }, // FrameBkdColor
-        { (ObjectType.Game, 14), _ => "0" }, // DisplayMode // TODO
-        { (ObjectType.Game, 15), _ => "0" }, // PixelShaderVersion // TODO
+		{ (ObjectType.Game, 14), _ => "0" }, // DisplayMode // TODO
+		{ (ObjectType.Game, 15), _ => "0" }, // PixelShaderVersion // TODO
 
 		//Speaker
 		{ (ObjectType.Speaker, 0), _ => "Application::Instance().GetBackend()->audio->GetSampleVolume(-1)" }, // Main Volume
@@ -97,19 +97,19 @@ public class ExpressionConverter
 		{ (ObjectType.Speaker, 11), e => $"Application::Instance().GetBackend()->audio->GetSampleFreq({(e.Loader as DoubleExp).Value}, true" }, // Channel Frequency
 		{ (ObjectType.Speaker, 12), _ => $"Application::Instance().GetBackend()->audio->GetChannelName(" }, // Channel Sample Name
 
-        // System
-        { (ObjectType.System, -3), _ => ", " },
+		// System
+		{ (ObjectType.System, -3), _ => ", " },
 		{ (ObjectType.System, -2), _ => ")" },
 		{ (ObjectType.System, -1), _ => "(" },
 		{ (ObjectType.System, 1),  _ => "Application::Instance().Random(" }, // Random(
-        { (ObjectType.System, 2),  _ => $"Application::Instance().GetAppData()->GetGlobalValue(" }, // Global Value
-        { (ObjectType.System, 3),  e => $"std::string(\"{e.Loader.ToString()}\")" },
+		{ (ObjectType.System, 2),  _ => $"Application::Instance().GetAppData()->GetGlobalValue(" }, // Global Value
+		{ (ObjectType.System, 3),  e => $"std::string(\"{e.Loader.ToString()}\")" },
 		{ (ObjectType.System, 4),  _ => $"std::to_string(" }, // Str$
 		{ (ObjectType.System, 5),  _ => $"MathHelper::Stoi(" }, // Val(
-        { (ObjectType.System, 6),  _ => "std::string(\"\")" }, // Appdrive$ // TODO
-        { (ObjectType.System, 7),  _ => "std::string(\"\")" }, // Appdir$ // TODO
-        { (ObjectType.System, 8),  _ => "std::string(\"\")" }, // Apppath$ // TODO
-        { (ObjectType.System, 9),  _ => "std::string(\"\")" }, // Appname$ // TODO
+		{ (ObjectType.System, 6),  _ => "std::string(\"\")" }, // Appdrive$ // TODO
+		{ (ObjectType.System, 7),  _ => "std::string(\"\")" }, // Appdir$ // TODO
+		{ (ObjectType.System, 8),  _ => "std::string(\"\")" }, // Apppath$ // TODO
+		{ (ObjectType.System, 9),  _ => "std::string(\"\")" }, // Appname$ // TODO
 		{ (ObjectType.System, 10), _ => "MathHelper::Sin(" }, // Sin
 		{ (ObjectType.System, 11), _ => "MathHelper::Cos(" }, // Cos
 		{ (ObjectType.System, 12), _ => "MathHelper::Tan(" }, // Tan
@@ -119,10 +119,10 @@ public class ExpressionConverter
 		{ (ObjectType.System, 16), _ => "Hex(" }, // Hex
 		{ (ObjectType.System, 17), _ => "Bin(" }, // Bin
 		{ (ObjectType.System, 18), _ => "std::exp(" }, // Exp
-        { (ObjectType.System, 19), _ => "StringLeft(" }, // String Left
-        { (ObjectType.System, 20), _ => "StringRight(" }, // String Right
+		{ (ObjectType.System, 19), _ => "StringLeft(" }, // String Left
+		{ (ObjectType.System, 20), _ => "StringRight(" }, // String Right
 		{ (ObjectType.System, 21), _ => "Mid(" }, // Mid
-        { (ObjectType.System, 22), _ => "StringLength(" }, // String Length
+		{ (ObjectType.System, 22), _ => "StringLength(" }, // String Length
 	  	{ (ObjectType.System, 23), e => (e.Loader as DoubleExp).FloatValue.ToString() },
 		{ (ObjectType.System, 24), e => $"Application::Instance().GetAppData()->GetGlobalValue({GetGlobalValueIndex(e.Loader as GlobalCommon)})" }, // Global Value
 		{ (ObjectType.System, 28), _ => "std::trunc(" }, // Int
@@ -133,46 +133,46 @@ public class ExpressionConverter
 		{ (ObjectType.System, 33), _ => "MathHelper::ASin(" }, // ASin
 		{ (ObjectType.System, 34), _ => "MathHelper::ATan(" }, // ATan
 		{ (ObjectType.System, 35), _ => "~(" }, // NOT
-        { (ObjectType.System, 36), _ => "0" }, // Number of Dropped Files
-        { (ObjectType.System, 37), _ => "\"\"" }, // Dropped File Path$(index) // TODO
-        { (ObjectType.System, 38), _ => "\"\"" }, // Command Line$ // TODO
-        { (ObjectType.System, 39), _ => "\"\"" }, // Command Item$ // TODO
-        { (ObjectType.System, 40), _ => "std::min(" }, // Min(
-        { (ObjectType.System, 41), _ => "std::max(" }, // Max(
-        { (ObjectType.System, 42), _ => "MathHelper::GetRGB(" }, // GetRGB
-        { (ObjectType.System, 43), _ => "MathHelper::GetRed(" }, // GetRed
-        { (ObjectType.System, 44), _ => "MathHelper::GetGreen(" }, // GetGreen
-        { (ObjectType.System, 45), _ => "MathHelper::GetBlue(" }, // GetBlue
-        { (ObjectType.System, 46), _ => "Loopindex(" }, // LoopIndex
-        { (ObjectType.System, 47), _ => "NewLine()" },
-        { (ObjectType.System, 48), _ => "std::round(" },
-        { (ObjectType.System, 49), _ => "Application::Instance().GetAppData()->GetGlobalString(" },
+		{ (ObjectType.System, 36), _ => "0" }, // Number of Dropped Files
+		{ (ObjectType.System, 37), _ => "\"\"" }, // Dropped File Path$(index) // TODO
+		{ (ObjectType.System, 38), _ => "\"\"" }, // Command Line$ // TODO
+		{ (ObjectType.System, 39), _ => "\"\"" }, // Command Item$ // TODO
+		{ (ObjectType.System, 40), _ => "std::min(" }, // Min(
+		{ (ObjectType.System, 41), _ => "std::max(" }, // Max(
+		{ (ObjectType.System, 42), _ => "MathHelper::GetRGB(" }, // GetRGB
+		{ (ObjectType.System, 43), _ => "MathHelper::GetRed(" }, // GetRed
+		{ (ObjectType.System, 44), _ => "MathHelper::GetGreen(" }, // GetGreen
+		{ (ObjectType.System, 45), _ => "MathHelper::GetBlue(" }, // GetBlue
+		{ (ObjectType.System, 46), _ => "Loopindex(" }, // LoopIndex
+		{ (ObjectType.System, 47), _ => "NewLine()" },
+		{ (ObjectType.System, 48), _ => "std::round(" },
+		{ (ObjectType.System, 49), _ => "Application::Instance().GetAppData()->GetGlobalString(" },
 		{ (ObjectType.System, 50), e => $"Application::Instance().GetAppData()->GetGlobalString({GetGlobalValueIndex(e.Loader as GlobalCommon)})" },
-        { (ObjectType.System, 51), _ => "Lower(" },
-        { (ObjectType.System, 52), _ => "Upper(" },
-        { (ObjectType.System, 53), _ => "Find(" },
-        { (ObjectType.System, 54), _ => "ReverseFind(" },
+		{ (ObjectType.System, 51), _ => "Lower(" },
+		{ (ObjectType.System, 52), _ => "Upper(" },
+		{ (ObjectType.System, 53), _ => "Find(" },
+		{ (ObjectType.System, 54), _ => "ReverseFind(" },
 		{ (ObjectType.System, 56), _ => "std::string(\"\")" }, // AppTempPath$ // TODO
-        { (ObjectType.System, 58), _ => "std::to_string(" },
-        { (ObjectType.System, 59), _ => "MathHelper::ATan2(" },
-        { (ObjectType.System, 62), _ => "MathHelper::Distance(" },
-        { (ObjectType.System, 63), _ => "MathHelper::VAngle(" },
-        { (ObjectType.System, 64), _ => "MathHelper::Range(" },
-        { (ObjectType.System, 65), _ => "Application::Instance().RandomRange(" }, // RRandom
-        { (ObjectType.System, 66), _ => "Application::Instance().GetBackend()->GetPlatformName()" }, // RuntimeName$
-        { (ObjectType.System, 67), _ => "ReplaceString(" }, // ReplaceString$
+		{ (ObjectType.System, 58), _ => "std::to_string(" },
+		{ (ObjectType.System, 59), _ => "MathHelper::ATan2(" },
+		{ (ObjectType.System, 62), _ => "MathHelper::Distance(" },
+		{ (ObjectType.System, 63), _ => "MathHelper::VAngle(" },
+		{ (ObjectType.System, 64), _ => "MathHelper::Range(" },
+		{ (ObjectType.System, 65), _ => "Application::Instance().RandomRange(" }, // RRandom
+		{ (ObjectType.System, 66), _ => "Application::Instance().GetBackend()->GetPlatformName()" }, // RuntimeName$
+		{ (ObjectType.System, 67), _ => "ReplaceString(" }, // ReplaceString$
 
-        // Arithmetic
-        { (ObjectType.Arithmetic, 2), _ => " + " }, // Add
-        { (ObjectType.Arithmetic, 4), _ => " - " }, // Sub
-        { (ObjectType.Arithmetic, 6), _ => " * " }, // Multiply
-        { (ObjectType.Arithmetic, 8), _ => " /MathHelper::GetSafeDivision()/ " }, // Division
-        { (ObjectType.Arithmetic, 10), _ => " % " },
-        { (ObjectType.Arithmetic, 12), _ => " /MathHelper::GetPower()/ " },
-        { (ObjectType.Arithmetic, 14), _ => " & " },
-        { (ObjectType.Arithmetic, 16), _ => " | " },
-        { (ObjectType.Arithmetic, 18), _ => " ^ " }
-    };
+		// Arithmetic
+		{ (ObjectType.Arithmetic, 2), _ => " + " }, // Add
+		{ (ObjectType.Arithmetic, 4), _ => " - " }, // Sub
+		{ (ObjectType.Arithmetic, 6), _ => " * " }, // Multiply
+		{ (ObjectType.Arithmetic, 8), _ => " /MathHelper::GetSafeDivision()/ " }, // Division
+		{ (ObjectType.Arithmetic, 10), _ => " % " },
+		{ (ObjectType.Arithmetic, 12), _ => " /MathHelper::GetPower()/ " },
+		{ (ObjectType.Arithmetic, 14), _ => " & " },
+		{ (ObjectType.Arithmetic, 16), _ => " | " },
+		{ (ObjectType.Arithmetic, 18), _ => " ^ " }
+	};
 
 	public static int GetGlobalValueIndex(GlobalCommon value)
 	{
