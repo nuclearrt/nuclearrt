@@ -69,13 +69,18 @@ public class EventProcessor
 			{
 				if (eventLoopType == EventLoopType.Timer)
 				{
-					if (IsTimerEvent(evt)) result.Append($"{eventName}();\n");
+					if (!IsTimerEvent(evt)) continue;
 				}
 				else if (eventLoopType == EventLoopType.Animation)
 				{
-					if (IsAnimationEvent(evt)) result.Append($"{eventName}();\n");
+					if (!IsAnimationEvent(evt)) continue;
 				}
-				else result.Append($"{eventName}();\n");
+				else if (eventLoopType == EventLoopType.Normal)
+				{
+					if (IsTimerEvent(evt) || IsAnimationEvent(evt)) continue;
+				}
+				
+				result.Append($"{eventName}();\n");
 			}
 		}
 		return result.ToString();
@@ -479,15 +484,12 @@ public class EventProcessor
 	public bool IsTimerEvent(EventGroup evtGroup)
 	{
 		// TODO: Verify if any other conditions should be considered a timer event, I got these from 2006 documentation: https://www.clickteam.com/creation_materials/tutorials/download/Fusion_runtime.pdf
-		foreach (var condition in evtGroup.Conditions)
+		if (new StartOfFrameCondition().Equals(evtGroup.Conditions[0])
+			|| new TimerComparisonLessThanCondition().Equals(evtGroup.Conditions[0])
+			|| new TimerComparisonGreaterThanCondition().Equals(evtGroup.Conditions[0])
+			|| new TimerComparisonEqualToCondition().Equals(evtGroup.Conditions[0]))
 		{
-			if (new StartOfFrameCondition().Equals(condition)
-				|| new TimerComparisonLessThanCondition().Equals(condition)
-				|| new TimerComparisonGreaterThanCondition().Equals(condition)
-				|| new TimerComparisonEqualToCondition().Equals(condition))
-			{
-				return true;
-			}
+			return true;
 		}
 
 		return false;
@@ -495,11 +497,7 @@ public class EventProcessor
 
 	public bool IsAnimationEvent(EventGroup evtGroup)
 	{
-		foreach (var condition in evtGroup.Conditions)
-		{
-			if (new AnimationOverCondition().Equals(condition)) return true;
-		}
-		return false;
+		return new AnimationOverCondition().Equals(evtGroup.Conditions[0]);
 	}
 
 	//Adds global events to the frame
