@@ -65,12 +65,10 @@ int Input::GetControlType(int player)
 
 void Input::SetControlType(int player, int type)
 {
-	if (type == 0) type = 5;
-	
 	if (type >= 1 && type <= 4) //is gamepad
 	{
 		if (!Application::Instance().GetBackend()->input->IsGamepadConnected(type-1))
-			type = 5; //reset back to keyboard
+			type = 0; //reset back to keyboard
 	}
 	
 	Application::Instance().GetAppData()->GetControlTypes()[player] = type;
@@ -79,7 +77,7 @@ void Input::SetControlType(int player, int type)
 bool Input::IsControlsDown(int player, short control)
 {
 	int controlType = Application::Instance().GetAppData()->GetControlTypes()[player];
-	if (controlType != 5)
+	if (controlType != 0)
 	{
 		if (!Application::Instance().GetBackend()->input->IsGamepadConnected(controlType-1))
 			return false;
@@ -103,7 +101,7 @@ bool Input::IsControlsDown(int player, short control)
 bool Input::IsControlsPressed(int player, short control)
 {
 	int controlType = Application::Instance().GetAppData()->GetControlTypes()[player];
-	if (controlType != 5)
+	if (controlType != 0)
 	{
 		if (!Application::Instance().GetBackend()->input->IsGamepadConnected(controlType-1))
 			return false;
