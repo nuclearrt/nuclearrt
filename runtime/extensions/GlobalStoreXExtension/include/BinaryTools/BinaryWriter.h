@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <type_traits>
+#include <cstdint>
 
 struct MemoryBuffer;
 

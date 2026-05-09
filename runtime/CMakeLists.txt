@@ -70,6 +70,21 @@ else()
     message(STATUS "Using local SDL3_ttf")
 endif()
 
+if(WIN32 OR (UNIX AND NOT APPLE AND NOT EMSCRIPTEN))
+    find_package(GLEW QUIET)
+    if (NOT GLEW_FOUND)
+        message(STATUS "Getting GLEW from Github")
+        set(glew-cmake_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+        set(glew-cmake_BUILD_STATIC ON CACHE BOOL "" FORCE)
+        set(ONLY_LIBS ON CACHE BOOL "" FORCE)
+        include_dependency(glew https://github.com/Perlmint/glew-cmake.git glew-cmake-2.2.0-1)
+    else()
+        message(STATUS "Using local GLEW")
+    endif()
+endif()
+
+find_package(OpenGL REQUIRED)
+
 add_compile_definitions(NUCLEAR_BACKEND_SDL3)
 
 if(WIN32)
@@ -97,7 +112,7 @@ if(NOT EMSCRIPTEN)
         ${IMGUI_PATH}/imgui_tables.cpp
         ${IMGUI_PATH}/imgui_widgets.cpp
         ${IMGUI_PATH}/backends/imgui_impl_sdl3.cpp
-        ${IMGUI_PATH}/backends/imgui_impl_sdlrenderer3.cpp
+        ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp
     )
     
     # Include directories for ImGui
@@ -223,7 +238,9 @@ endif()
 
 # Additional platform-specific linking
 if(WIN32 AND NOT EMSCRIPTEN)
-    target_link_libraries(${PROJECT_NAME} PRIVATE winmm)
+    target_link_libraries(${PROJECT_NAME} PRIVATE winmm OpenGL::GL libglew_static)
 elseif(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
-    target_link_libraries(${PROJECT_NAME} PRIVATE X11 GL m pthread)
+    target_link_libraries(${PROJECT_NAME} PRIVATE X11 OpenGL::GL libglew_static m pthread)
+elseif(APPLE AND NOT EMSCRIPTEN)
+    target_link_libraries(${PROJECT_NAME} PRIVATE "-framework OpenGL")
 endif()

@@ -9,15 +9,15 @@
 // Dear ImGui includes
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
-#include "imgui_impl_sdlrenderer3.h"
+#include "imgui_impl_opengl3.h"
 
-void DebugUI::Initialize(SDL_Window* window, SDL_Renderer* renderer) {
+void DebugUI::Initialize(SDL_Window* window, void* glContext) {
 	if (initialized) {
 		return;
 	}
 
 	this->window = window;
-	this->renderer = renderer;
+	this->glContext = glContext;
 
 	IMGUI_CHECKVERSION();
 	context = ImGui::CreateContext();
@@ -25,8 +25,8 @@ void DebugUI::Initialize(SDL_Window* window, SDL_Renderer* renderer) {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
-	ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
-	ImGui_ImplSDLRenderer3_Init(renderer);
+	ImGui_ImplSDL3_InitForOpenGL(window, glContext);
+	ImGui_ImplOpenGL3_Init("#version 330");
 
 	initialized = true;
 }
@@ -36,7 +36,7 @@ void DebugUI::Shutdown() {
 		return;
 	}
 
-	ImGui_ImplSDLRenderer3_Shutdown();
+	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext(context);
 	context = nullptr;
@@ -56,7 +56,7 @@ void DebugUI::BeginFrame() {
 	
 	fps = 1.0f / frameTime;
 
-	ImGui_ImplSDLRenderer3_NewFrame();
+	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
 }
@@ -70,7 +70,7 @@ void DebugUI::EndFrame() {
 	RenderMetrics();
 
 	ImGui::Render();
-	ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void DebugUI::AddWindow(const std::string& name, std::function<void()> renderFunction) {

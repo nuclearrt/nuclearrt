@@ -37,7 +37,7 @@ public:
 
 	void LoadTexture(int id) override;
 	void UnloadTexture(int id) override;
-	void DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scale, int color, int effect, unsigned char effectParameter) override;
+	void DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scaleX, float scaleY, int color, int effect, unsigned char effectParameter, EffectInstance* effectInstance = nullptr) override;
 	void DrawQuickBackdrop(int x, int y, int width, int height, Shape* shape) override;
 	
 	void DrawRectangle(int x, int y, int width, int height, int color) override;
@@ -47,7 +47,7 @@ public:
 
 	void LoadFont(int id) override;
 	void UnloadFont(int id) override;
-	void DrawText(FontInfo* fontInfo, int x, int y, int color, const std::string& text) override;
+	void DrawText(FontInfo* fontInfo, int x, int y, int color, const std::string& text, int objectHandle = -1, int rgbCoefficient = 0xFFFFFF, int effect = 0, unsigned char effectParameter = 0, EffectInstance* effectInstance = nullptr) override;
 	// Sample Start
 	bool LoadSample(int id, int channel) override {return false;}
 	bool LoadSampleFile(std::string path) override {return false;}
@@ -83,7 +83,6 @@ public:
 	unsigned int GetTicks() override { return SDL_GetTicks(); }
 	float GetTimeDelta() override;
 	void Delay(unsigned int ms) override;
-	void GetTextureDimensions(int textureId, int& width, int& height) override;
 
 #ifdef _DEBUG
 	void ToggleDebugUI() { DEBUG_UI.ToggleEnabled(); }

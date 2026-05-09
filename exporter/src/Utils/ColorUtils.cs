@@ -4,11 +4,11 @@ public static class ColorUtils
 {
 	public static string ColorToRGB(Color color)
 	{
-		return $"0x{color.R:X2}{color.G:X2}{color.B:X2}";
+		return $"0xFF{color.R:X2}{color.G:X2}{color.B:X2}";
 	}
 
-	public static int ColorToArgb(Color color)
+	public static string ColorToArgb(Color color)
 	{
-		return color.ToArgb();
+		return $"0x{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}";
 	}
 }

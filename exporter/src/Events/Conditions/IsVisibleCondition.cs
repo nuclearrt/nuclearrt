@@ -26,3 +26,8 @@ public class IsVisibleConditionString : IsVisibleCondition
 {
 	public override int ObjectType { get; set; } = 3;
 }
+
+public class IsVisibleConditionExtension : IsVisibleCondition
+{
+	public override int ObjectType { get; set; } = 32;
+}

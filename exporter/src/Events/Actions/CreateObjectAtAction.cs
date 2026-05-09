@@ -17,7 +17,7 @@ public class CreateObjectAtAction : ActionBase
 		string layer = ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[3].Loader, eventBase);
 		var objectInfo = ExpressionConverter.GetObject(obj.ObjectInfo, IsGlobal);
 		result.AppendLine("{");
-		result.AppendLine($"ObjectInstance* instance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), {X}, {Y}, ({layer}) - 1, 0, {objectInfo.Item1}, 0);");
+		result.AppendLine($"ObjectInstance* instance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), {X}, {Y}, ({layer}) - 1, 0, {objectInfo.Item1}, 0, true);");
 		//add to selector
 		result.AppendLine($"{GetSelector(obj.ObjectInfo)}->AddInstance(instance);");
 		result.AppendLine($"{GetSelector(obj.ObjectInfo)}->SelectOnly(instance);");

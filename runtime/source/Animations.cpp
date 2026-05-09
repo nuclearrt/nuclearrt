@@ -112,6 +112,16 @@ int Animations::GetYHotspot() const {
 	return ImageBank::Instance().GetImage(currentImageHandle)->HotspotY;
 }
 
+int Animations::GetWidth() const {
+	unsigned int currentImageHandle = GetCurrentImageHandle();
+	return ImageBank::Instance().GetImage(currentImageHandle)->Width;
+}
+
+int Animations::GetHeight() const {
+	unsigned int currentImageHandle = GetCurrentImageHandle();
+	return ImageBank::Instance().GetImage(currentImageHandle)->Height;
+}
+
 void Animations::Start() {
 	started = true;
 }

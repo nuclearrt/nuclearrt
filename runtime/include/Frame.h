@@ -89,7 +89,7 @@ public:
 	std::vector<unsigned int> GetImagesUsed();
 	std::vector<unsigned int> GetFontsUsed();
 
-	ObjectInstance* CreateInstance(ObjectInstance* createdInstance, short x, short y, unsigned int layer, short instanceValue, unsigned int objectInfoHandle, short angle, ObjectInstance* parentInstance = nullptr);
+	ObjectInstance* CreateInstance(ObjectInstance* createdInstance, short x, short y, unsigned int layer, short instanceValue, unsigned int objectInfoHandle, short angle, bool postInitialize = false, ObjectInstance* parentInstance = nullptr);
 
 	std::vector<ObjectGlobalData*> GetGlobalObjectData();
 	void ApplyGlobalObjectData(std::vector<ObjectGlobalData*> globalData);
@@ -102,6 +102,10 @@ public:
 
 	int GetMouseX();
 	int GetMouseY();
+
+	int GetRGB(int red, int green, int blue) {
+		return 0xFF000000 | (red << 16) | (green << 8) | blue;
+	}
 
 	inline int StringLength(std::string str) {
 		return (int)str.length();
@@ -194,6 +198,41 @@ public:
 			return 0;
 		}
 		return ODistance(*(selector->begin()), xTarget, yTarget);
+	}
+
+	int GetAlterableValueByIndex(ObjectInstance* instance, int index) {
+		if (instance->Type == 2) {
+			return static_cast<Active*>(instance)->Values.GetValue(index);
+		}
+		else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) {
+			return  static_cast<CounterBase*>(instance)->Values.GetValue(index);
+		}
+
+		return 0;
+	}
+
+	int GetAlterableValueByIndex(std::shared_ptr<ObjectSelector> selector, int index) {
+		if (!selector || selector->Count() == 0) {
+			return 0;
+		}
+		return GetAlterableValueByIndex(*(selector->begin()), index);
+	}
+
+	int GetAlterableFlagValue(ObjectInstance* instance, int index) {
+		if (instance->Type == 2) {
+			return static_cast<Active*>(instance)->Flags.GetFlagValue(index);
+		}
+		else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) {
+			return  static_cast<CounterBase*>(instance)->Flags.GetFlagValue(index);
+		}
+		return 0;
+	}
+
+	int GetAlterableFlagValue(std::shared_ptr<ObjectSelector> selector, int index) {
+		if (!selector || selector->Count() == 0) {
+			return 0;
+		}
+		return GetAlterableFlagValue(*(selector->begin()), index);
 	}
 
 	struct LoopState {

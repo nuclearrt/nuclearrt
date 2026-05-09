@@ -4,6 +4,7 @@
 #include "Extension.h"
 #include "ObjectInstance.h"
 #include <string>
+#include "Bitmap.h"
 	
 class ButtonObjectExtension : public Extension {
 public:
@@ -35,4 +36,6 @@ private:
 	bool Checked = false; // used for checkboxes and radio buttons
 	bool Hovered = false;
 	bool Shown = true;
+
+	Bitmap bitmap;
 };

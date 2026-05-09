@@ -13,6 +13,8 @@ public:
 	virtual void Initialize() {}
 	virtual void Update(float deltaTime) {}
 	virtual void Draw() {}
+
+	bool Visible = true;
 };
 
  

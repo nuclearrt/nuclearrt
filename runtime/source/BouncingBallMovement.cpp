@@ -13,7 +13,10 @@ void BouncingBallMovement::OnEnabled() {
 		}
 	}
 
-	movementDirection = directions[Application::Instance().RandomRange(0, static_cast<short>(directions.size() - 1))];
+	// direction will just be right if no directions are set
+	if (!directions.empty()) {
+		movementDirection = directions[Application::Instance().RandomRange(0, static_cast<short>(directions.size() - 1))];
+	}
 }
 
 void BouncingBallMovement::Update(float deltaTime) {

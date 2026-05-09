@@ -9,7 +9,6 @@
 
 struct ImGuiContext;
 struct SDL_Window;
-struct SDL_Renderer;
 
 class DebugUI {
 public:
@@ -18,7 +17,7 @@ public:
 		return instance;
 	}
 
-	void Initialize(SDL_Window* window, SDL_Renderer* renderer);
+	void Initialize(SDL_Window* window, void* glContext);
 	void Shutdown();
 	
 	void BeginFrame();
@@ -43,7 +42,7 @@ private:
 	bool initialized = false;
 	
 	SDL_Window* window = nullptr;
-	SDL_Renderer* renderer = nullptr;
+	void* glContext = nullptr;
 	ImGuiContext* context = nullptr;
 	
 	float frameTime = 0.0f;

@@ -39,7 +39,7 @@ public abstract class BaseExporter
 		return ColorUtils.ColorToRGB(color);
 	}
 
-	protected int ColorToArgb(Color color)
+	protected string ColorToArgb(Color color)
 	{
 		return ColorUtils.ColorToArgb(color);
 	}

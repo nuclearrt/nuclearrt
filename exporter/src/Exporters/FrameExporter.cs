@@ -4,6 +4,9 @@ using CTFAK.CCN.Chunks.Frame;
 using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 using CTFAK.MMFParser.EXE.Loaders.Events.Expressions;
 using CTFAK.Utils;
+using CTFAK.MMFParser.EXE.Loaders;
+using System.Globalization;
+using System.Drawing;
 
 public class FrameExporter : BaseExporter
 {
@@ -78,8 +81,9 @@ public class FrameExporter : BaseExporter
 
 		_eventProcessor.PreProcessFrame(frameIndex);
 
-		frameCpp = frameCpp.Replace("{{ EVENT_TIMER_UPDATE_LOOP }}", _eventProcessor.BuildEventUpdateLoop(frameIndex, true));
-		frameCpp = frameCpp.Replace("{{ EVENT_UPDATE_LOOP }}", _eventProcessor.BuildEventUpdateLoop(frameIndex, false));
+		frameCpp = frameCpp.Replace("{{ EVENT_ANIMATION_UPDATE_LOOP }}", _eventProcessor.BuildEventUpdateLoop(frameIndex, EventProcessor.EventLoopType.Animation));
+		frameCpp = frameCpp.Replace("{{ EVENT_TIMER_UPDATE_LOOP }}", _eventProcessor.BuildEventUpdateLoop(frameIndex, EventProcessor.EventLoopType.Timer));
+		frameCpp = frameCpp.Replace("{{ EVENT_NORMAL_UPDATE_LOOP }}", _eventProcessor.BuildEventUpdateLoop(frameIndex, EventProcessor.EventLoopType.Normal));
 		frameCpp = frameCpp.Replace("{{ EVENT_FUNCTIONS }}", _eventProcessor.BuildEventFunctions(frameIndex));
 
 		return frameCpp;
@@ -105,7 +109,46 @@ public class FrameExporter : BaseExporter
 		layers.AppendLine($"Layers.reserve({frame.layers.Items.Count});");
 		foreach (var layer in frame.layers.Items)
 		{
-			layers.AppendLine($"Layers.push_back(Layer(\"{SanitizeString(layer.Name)}\", {layer.XCoeff}, {layer.YCoeff}));");
+			string layerName = SanitizeObjectName(layer.Name);
+			layers.AppendLine($"Layer {layerName} = Layer(\"{SanitizeString(layer.Name)}\", {layer.XCoeff}, {layer.YCoeff});");
+
+			if (ColorUtils.ColorToRGB(layer.RGBCoeff) != "0xFFFFFFFF") layers.AppendLine($"{layerName}.RGBCoefficient = {ColorToRGB(layer.RGBCoeff)};");
+			if (layer.RGBCoeff.A != 255) layers.AppendLine($"{layerName}.SetEffectParameter({Math.Clamp(byte.MaxValue - layer.RGBCoeff.A, 0, 255)});");
+			
+			if (layer.Flags.GetFlag("SameEffectAsPreviousLayer")) layers.AppendLine($"{layerName}.usePreviousLayerEffect = true;");
+			if (layer.Effect != 0 && layer.Effect != 4096) layers.AppendLine($"{layerName}.Effect = {layer.Effect};");
+
+			if (layer.shaderData.hasShader)
+			{
+				Shader shader = GameData.shaders.ShaderList[layer.shaderData.ShaderHandle];
+				layers.AppendLine($"{layerName}.effectInstance = EffectBank::CreateEffect_{SanitizeObjectName(shader.Name)}_{layer.shaderData.ShaderHandle}();");
+				for (int i = 0; i < layer.shaderData.parameters.Count; i++)
+				{
+					var parameter = shader.Parameters[i];
+					string value;
+					switch (parameter.Type)
+					{
+						case 0: //int, also used as bool
+							value = $"static_cast<int>({BitConverter.ToInt32(layer.shaderData.parameters[i].Value as byte[], 0)})";
+							break;
+						case 1:
+							//read float from bytes
+							value = $"static_cast<float>({((float)BitConverter.ToSingle(layer.shaderData.parameters[i].Value as byte[], 0)).ToString(CultureInfo.InvariantCulture)}";
+							if (!value.Contains('.')) value += ".0";
+							value += "f)";
+							break;
+						case 2: //color
+							value = $"static_cast<int>(0x{BitConverter.ToInt32(layer.shaderData.parameters[i].Value as byte[], 0):X8})";
+							break;
+						default:
+							value = $"static_cast<int>({BitConverter.ToInt32(layer.shaderData.parameters[i].Value as byte[], 0)})";
+							break;
+					}
+					layers.AppendLine($"{layerName}.effectInstance->SetParameter(\"{parameter.Name}\", {value});");
+				}
+			}
+
+			layers.AppendLine($"Layers.push_back({layerName});");
 		}
 		return layers.ToString();
 	}
@@ -120,7 +163,7 @@ public class FrameExporter : BaseExporter
 			if (obj.parentType != 0) continue;
 			if (GameData.frameitems[(int)obj.objectInfo].properties is ObjectCommon common && common.Flags.GetFlag("DoNotCreateAtStart")) continue;
 			string objectName = SanitizeObjectName(GameData.frameitems[(int)obj.objectInfo].name);
-			objectInstances.Append($"CreateInstance(factory.CreateInstance_{objectName}_{obj.objectInfo}(), {obj.x}, {obj.y}, {obj.layer}, {obj.instance}, {obj.objectInfo}, 0);\n");
+			objectInstances.Append($"CreateInstance(factory.CreateInstance_{objectName}_{obj.objectInfo}(), {obj.x}, {obj.y}, {obj.layer}, {obj.instance}, {obj.objectInfo}, 0, false);\n");
 			objectsCount += 1;
 		}
 
@@ -154,7 +197,7 @@ public class FrameExporter : BaseExporter
 			if (!uniqueHandles.Contains((uint)qualifier.ObjectInfo))
 			{
 				uniqueHandles.Add((uint)qualifier.ObjectInfo);
-				string objectName = Utilities.GetQualifierName(qualifier.ObjectInfo & 0x7FFF, qualifier.Type);
+				string objectName = Utilities.GetQualifierName(qualifier.Qualifier, qualifier.Type);
 				eventObjects.AppendLine($"std::shared_ptr<ObjectSelector> {SanitizeObjectName(objectName)}_{qualifier.ObjectInfo}_selector;");
 			}
 		}

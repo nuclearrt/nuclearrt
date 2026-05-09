@@ -45,50 +45,50 @@ public class IniExporter : ExtensionExporter
 
 		switch (actionNum)
 		{
-			case 80: // Set Current Group
+			case 0: // Set Current Group
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetCurrentGroup({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 				break;
-			case 81: // Set Current Item
+			case 1: // Set Current Item
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetCurrentItem({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 				break;
-			case 82: // Set Value
+			case 2: // Set Value
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetValue({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 				break;
-			case 83: // Save Position
+			case 3: // Save Position
 				ParamObject paramObject = (ParamObject)eventBase.Items[0].Loader;
 				string objectSelector = ExpressionConverter.GetSelector(paramObject.ObjectInfo);
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SavePosition(&(**{objectSelector}->begin()));");
 				break;
-			case 84: // Load Position
+			case 4: // Load Position
 				ParamObject paramObject2 = (ParamObject)eventBase.Items[0].Loader;
 				string objectSelector2 = ExpressionConverter.GetSelector(paramObject2.ObjectInfo);
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->LoadPosition(&(**{objectSelector2}->begin()));");
 				break;
-			case 86: // Set File Name
+			case 6: // Set File Name
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetFileName({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 				break;
-			case 87: // Set Value (Item)
+			case 7: // Set Value (Item)
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetValue({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)});");
 				break;
-			case 88: // Set Value (Group - Item)
+			case 8: // Set Value (Group - Item)
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetValue({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[2].Loader, eventBase)});");
 				break;
-			case 85: // Set String
+			case 5: // Set String
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetString({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 				break;
-			case 89: // Set String (Item)
+			case 9: // Set String (Item)
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetString({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)});");
 				break;
-			case 90: // Set String (Group - Item)
+			case 10: // Set String (Group - Item)
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->SetString({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[2].Loader, eventBase)});");
 				break;
-			case 91: // Delete Item
+			case 11: // Delete Item
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->DeleteItem({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 				break;
-			case 92: // Delete Item (Group - Item)
+			case 12: // Delete Item (Group - Item)
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->DeleteItem({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)});");
 				break;
-			case 93: // Delete Group
+			case 13: // Delete Group
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->DeleteGroup({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 				break;
 			default:
@@ -105,14 +105,14 @@ public class IniExporter : ExtensionExporter
 
 		switch (expression.Num)
 		{
-			case 80: // Get Value
-			case 82: // Get Value (Item)
-			case 83: // Get Value (Group - Item)
+			case 0: // Get Value
+			case 2: // Get Value (Item)
+			case 3: // Get Value (Group - Item)
 				result = $"{GetExtensionInstance(expression.ObjectInfo)}->GetValue(";
 				break;
-			case 81: // Get String
-			case 84: // Get String (Item)
-			case 85: // Get String (Group - Item)
+			case 1: // Get String
+			case 4: // Get String (Item)
+			case 5: // Get String (Group - Item)
 				result = $"{GetExtensionInstance(expression.ObjectInfo)}->GetString(";
 				break;
 			default:

@@ -26,3 +26,8 @@ public class IsInvisibleConditionString : IsInvisibleCondition
 {
 	public override int ObjectType { get; set; } = 3;
 }
+
+public class IsInvisibleConditionExtension : IsInvisibleCondition
+{
+	public override int ObjectType { get; set; } = 32;
+}

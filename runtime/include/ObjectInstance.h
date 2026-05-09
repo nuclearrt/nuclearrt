@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "ObjectGlobalData.h"
+#include "EffectInstance.h"
 
 class ObjectInstance {
 public:
@@ -28,7 +29,8 @@ public:
     int Y = 0;
     int RGBCoefficient = 0xFFFFFF;
     int Effect = 0;
-    
+    EffectInstance* effectInstance = nullptr;
+
     short InstanceValue = 0;
     
     bool global = false;

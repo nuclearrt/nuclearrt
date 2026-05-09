@@ -17,6 +17,7 @@ public class Exporter
 	private readonly ImageBankExporter _imageBankExporter;
 	private readonly SoundBankExporter _soundBankExporter;
 	private readonly FontBankExporter _fontBankExporter;
+	private readonly EffectBankExporter _effectBankExporter;
 	private readonly FrameExporter _frameExporter;
 	private readonly ProjectFileExporter _projectFileExporter;
 	private readonly ExtensionFolderExporter _extensionFolderExporter;
@@ -41,6 +42,7 @@ public class Exporter
 		_imageBankExporter = new ImageBankExporter(this);
 		_soundBankExporter = new SoundBankExporter(this);
 		_fontBankExporter = new FontBankExporter(this);
+		_effectBankExporter = new EffectBankExporter(this);
 		_frameExporter = new FrameExporter(this);
 		_projectFileExporter = new ProjectFileExporter(this);
 		_extensionFolderExporter = new ExtensionFolderExporter(this);
@@ -58,6 +60,7 @@ public class Exporter
 		_imageBankExporter.Export();
 		_soundBankExporter.Export();
 		_fontBankExporter.Export();
+		_effectBankExporter.Export();
 		_frameExporter.Export();
 	}
 }

@@ -26,6 +26,9 @@ public:
 	bool AutomaticRotation = false;
 	bool FineDetection = false;
 
+	float xScale = 1.0f;
+	float yScale = 1.0f;
+
 	std::vector<unsigned int> GetImagesUsed() override {
 		return animations.GetImagesUsed();
 	}

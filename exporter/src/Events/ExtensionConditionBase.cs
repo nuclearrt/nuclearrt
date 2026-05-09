@@ -11,6 +11,6 @@ public class ExtensionConditionBase : ConditionBase
 			return $"// Extension exporter not found for ObjectInfo {eventBase.ObjectInfo}";
 		}
 
-		return exporter.ExportCondition(eventBase, eventBase.Num, ref nextLabel, ref orIndex, parameters, ifStatement, IsGlobal);
+		return exporter.ExportCondition(eventBase, Math.Abs(eventBase.Num) - 80, ref nextLabel, ref orIndex, parameters, ifStatement, IsGlobal);
 	}
 }

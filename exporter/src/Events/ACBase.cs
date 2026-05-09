@@ -23,7 +23,7 @@ public class ACBase
 		if (obj.GetType().IsSubclassOf(typeof(EventBase)))
 		{
 			EventBase eventBase = obj as EventBase;
-			return eventBase.ObjectType == ObjectType && eventBase.Num == Num;
+			return (eventBase.ObjectType == ObjectType || eventBase.ObjectType >= 32 && ObjectType >= 32) && eventBase.Num == Num;
 		}
 		return base.Equals(obj);
 	}
