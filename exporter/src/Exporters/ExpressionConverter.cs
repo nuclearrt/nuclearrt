@@ -424,9 +424,13 @@ public class ExpressionConverter
 			{
 				case 80: // Value
 					{
-						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-							return stringBuilder.Append("((Counter*)instance)->GetValue()");
-						else
+						// TODO: there is most likely something wrong with the way we check for instances,
+						// since it attempts to get a instance even tho it isn't applicable
+						// so we just check for the first instance in the selector for now
+
+						//if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
+						//	return stringBuilder.Append("((Counter*)instance)->GetValue()");
+						//else
 							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Counter*)*({objectSelector}->begin()))->GetValue() : 0)");
 					}
 				case 81: // minvalue
