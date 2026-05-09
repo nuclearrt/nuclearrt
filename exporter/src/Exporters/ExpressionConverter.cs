@@ -159,8 +159,9 @@ public class ExpressionConverter
 		{ (ObjectType.System, 63), _ => "MathHelper::VAngle(" },
 		{ (ObjectType.System, 64), _ => "MathHelper::Range(" },
 		{ (ObjectType.System, 65), _ => "Application::Instance().RandomRange(" }, // RRandom
-		{ (ObjectType.System, 66), _ => "Application::Instance().GetBackend()->GetPlatformName()" }, // RuntimeName$
-		{ (ObjectType.System, 67), _ => "ReplaceString(" }, // ReplaceString$
+		{ (ObjectType.System, 66), _ => "ReplaceString(" }, // ReplaceString$
+		{ (ObjectType.System, 67), _ => "Application::Instance().GetBackend()->GetPlatformName()" }, // RuntimeName$
+
 
 		// Arithmetic
 		{ (ObjectType.Arithmetic, 2), _ => " + " }, // Add
