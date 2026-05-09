@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <SDL3/SDL.h>
+#include "SDL3Backend.h"
 #ifdef _DEBUG
 #include "DebugUI.h"
 #include "imgui.h"
@@ -34,12 +35,22 @@ bool SDL3PlatformBackend::ShouldQuit()
 			DEBUG_UI.ToggleEnabled();
 		}
 #endif
-		if (event.type == SDL_EVENT_WINDOW_FOCUS_GAINED) windowFocused = true;
-
-		if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST) windowFocused = false;
-
-		if (event.type == SDL_EVENT_QUIT) {
-			return true;
+		switch (event.type) {
+			case SDL_EVENT_WINDOW_FOCUS_GAINED:
+				windowFocused = true;
+				break;
+			case SDL_EVENT_WINDOW_FOCUS_LOST:
+				windowFocused = false;
+				break;
+			case SDL_EVENT_QUIT:
+				return true;
+			case SDL_EVENT_GAMEPAD_ADDED:
+				backend->GetInput()->gamepads.push_back(SDL_OpenGamepad(event.gdevice.which));
+				break;
+			case SDL_EVENT_GAMEPAD_REMOVED:
+				SDL_CloseGamepad(backend->GetInput()->gamepads.back());
+				backend->GetInput()->gamepads.pop_back();
+				break;
 		}
 	}
 	return false;

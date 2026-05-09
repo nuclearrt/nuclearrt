@@ -4,7 +4,10 @@
 
 #include "InputBackend.h"
 
+#include <vector>
+
 class SDL3Backend;
+struct SDL_Gamepad;
 
 class SDL3InputBackend : public InputBackend {
 public:
@@ -20,7 +23,12 @@ public:
 	void HideMouseCursor() override;
 	void ShowMouseCursor() override;
 
+	bool IsGamepadConnected(int index) override;
+	uint8_t GetGamepadButtonState(int index) override;
+
 	int FusionToSDLKey(short key);
+
+	std::vector<SDL_Gamepad*> gamepads = {};
 private:
 	SDL3Backend* backend = nullptr;
 }; 

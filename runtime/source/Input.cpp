@@ -12,6 +12,11 @@ void Input::Update()
 
 	previousMouseState = currentMouseState;
 	currentMouseState = Application::Instance().GetBackend()->input->GetMouseState();
+
+	for (int i = 0; i < 4; i++)
+	{
+		m_gamepadState[m_currIndex][i] = Application::Instance().GetBackend()->input->GetGamepadButtonState(i);
+	}
 }
 
 void Input::Reset()
@@ -20,6 +25,12 @@ void Input::Reset()
 
 	previousMouseState = 0;
 	currentMouseState = 0;
+
+	for (int i = 0; i < 4; i++)
+	{
+		m_gamepadState[0][i] = 0;
+		m_gamepadState[1][i] = 0;
+	}
 }
 
 bool Input::IsKeyDown(short key)
@@ -47,12 +58,38 @@ bool Input::IsAnyKeyPressed()
 	return false;
 }
 
+int Input::GetControlType(int player)
+{
+	return Application::Instance().GetAppData()->GetControlTypes()[player];
+}
+
+void Input::SetControlType(int player, int type)
+{
+	if (type == 0) type = 5;
+	
+	if (type >= 1 && type <= 4) //is gamepad
+	{
+		if (!Application::Instance().GetBackend()->input->IsGamepadConnected(type-1))
+			type = 5; //reset back to keyboard
+	}
+	
+	Application::Instance().GetAppData()->GetControlTypes()[player] = type;
+}
+
 bool Input::IsControlsDown(int player, short control)
 {
 	int controlType = Application::Instance().GetAppData()->GetControlTypes()[player];
-	if (controlType != 5) // TODO: other control types besides keyboard
+	if (controlType != 5)
 	{
-		return false;
+		if (!Application::Instance().GetBackend()->input->IsGamepadConnected(controlType-1))
+			return false;
+
+		for (int i = 0; i < 8; i++)
+		{
+			if ((control & (1 << i)) != 0 && (m_gamepadState[m_currIndex][player] & (1 << i)) == 0)
+				return false;
+		}
+		return true;
 	}
 
 	for (int i = 0; i < 8; i++)
@@ -66,8 +103,18 @@ bool Input::IsControlsDown(int player, short control)
 bool Input::IsControlsPressed(int player, short control)
 {
 	int controlType = Application::Instance().GetAppData()->GetControlTypes()[player];
-	if (controlType != 5) // TODO: other control types besides keyboard
+	if (controlType != 5)
 	{
+		if (!Application::Instance().GetBackend()->input->IsGamepadConnected(controlType-1))
+			return false;
+
+		for (int i = 0; i < 8; i++)
+		{
+			if ((control & (1 << i)) == 0)
+				continue;
+			if ((m_gamepadState[m_currIndex][player] & (1 << i)) != 0 && (m_gamepadState[m_currIndex ^ 1][player] & (1 << i)) == 0)
+				return true;
+		}
 		return false;
 	}
 

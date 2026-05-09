@@ -16,4 +16,7 @@ public:
 	virtual uint32_t GetMouseState() { return 0; }
 	virtual void HideMouseCursor() {}
 	virtual void ShowMouseCursor() {}
+
+	virtual bool IsGamepadConnected(int index) { return false; }
+	virtual uint8_t GetGamepadButtonState(int index) { return 0; }
 }; 

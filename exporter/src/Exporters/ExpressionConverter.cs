@@ -45,6 +45,7 @@ public class ExpressionConverter
 	{
         //Player
         { (ObjectType.Player, 1), e => $"Application::Instance().GetAppData()->GetPlayerLives({e.ObjectInfo})" }, // Player Lives
+		{ (ObjectType.Player, 2), e => $"Application::Instance().GetInput()->GetControlType({e.ObjectInfo})" }, // Player Input device
 
         //Keyboard / Mouse
         { (ObjectType.Keyboard, 0), _ => "GetMouseX()" }, // XMouse

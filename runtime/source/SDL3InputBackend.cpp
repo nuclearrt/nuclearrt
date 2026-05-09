@@ -134,6 +134,32 @@ void SDL3InputBackend::ShowMouseCursor()
 	SDL_ShowCursor();
 }
 
+bool SDL3InputBackend::IsGamepadConnected(int index)
+{
+	return index >= 0 && index < gamepads.size() && gamepads.at(index) != nullptr;
+}
+
+uint8_t SDL3InputBackend::GetGamepadButtonState(int index)
+{
+	if (!IsGamepadConnected(index)) return 0;
+
+	uint8_t state = 0;
+
+	Sint16 leftX = SDL_GetGamepadAxis(gamepads.at(index), SDL_GAMEPAD_AXIS_LEFTX);
+	Sint16 leftY = SDL_GetGamepadAxis(gamepads.at(index), SDL_GAMEPAD_AXIS_LEFTY);
+	if (leftY < -16384) state |= 1 << 0;
+	if (leftY > 16384) state |= 1 << 1;
+	if (leftX < -16384) state |= 1 << 2;
+	if (leftX > 16384) state |= 1 << 3;
+	
+	if (SDL_GetGamepadButton(gamepads.at(index), SDL_GAMEPAD_BUTTON_SOUTH)) state |= 1 << 4;
+	if (SDL_GetGamepadButton(gamepads.at(index), SDL_GAMEPAD_BUTTON_EAST)) state |= 1 << 5;
+	if (SDL_GetGamepadButton(gamepads.at(index), SDL_GAMEPAD_BUTTON_WEST)) state |= 1 << 6;
+	if (SDL_GetGamepadButton(gamepads.at(index), SDL_GAMEPAD_BUTTON_NORTH)) state |= 1 << 7;
+
+	return state;
+}
+
 int SDL3InputBackend::FusionToSDLKey(short key)
 {
 	switch (key)
