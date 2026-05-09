@@ -46,7 +46,7 @@ public class ExpressionConverter
         //Player
 		{ (ObjectType.Player, 0), e => $"Application::Instance().GetAppData()->GetPlayerScore({e.ObjectInfo})" }, // Player Score
         { (ObjectType.Player, 1), e => $"Application::Instance().GetAppData()->GetPlayerLives({e.ObjectInfo})" }, // Player Lives
-		// { (ObjectType.Player, 2), _ => "" }, // Input
+		{ (ObjectType.Player, 2), e => $"Application::Instance().GetInput()->GetControlType({e.ObjectInfo})" }, // Player Input device
 		// { (ObjectType.Player, 3), _ => "" }, // Key
 		// { (ObjectType.Player, 4), _ => "" }, // Player Name
 
