@@ -32,11 +32,11 @@ void Application::Initialize()
 		backend = std::make_shared<Backend>();
 	#endif
 
-	std::cout << "Initialized Backend: " << backend->platform->GetName() << std::endl;
+	backend->platform->Log("Initialized Backend: " + backend->platform->GetName());
 
 	input = std::make_shared<Input>();
 	input->Reset();
-	std::cout << "Initialized Input" << std::endl;
+	backend->platform->Log("Initialized Input");
 
 	QueueStateChange(GameState::RestartApplication);
 
@@ -71,7 +71,7 @@ void Application::Draw()
 
 void Application::Shutdown()
 {
-	std::cout << "Shutting down..." << std::endl;
+	backend->platform->Log("Shutting down...");
 }
 
 static void Loop()
@@ -148,7 +148,7 @@ void Application::LoadFrame(int frameIndex)
 	{
 		frameIndex = 0;
 	}	
-	std::cout << "Loading frame " << frameIndex << std::endl;
+	backend->platform->Log("Loading frame " + std::to_string(frameIndex));
 	std::vector<unsigned int> oldImagesUsed;
 	std::vector<unsigned int> oldFontsUsed;
 	if (currentFrame != nullptr)
@@ -224,7 +224,7 @@ void Application::LoadFrame(int frameIndex)
 		backend->graphics->UnloadFont(font);
 	}
 
-	std::cout << "Loaded frame " << frameIndex << std::endl;
+	backend->platform->Log("Loaded frame " + std::to_string(frameIndex));
 	if (!GetAppData()->GetSampleOverFrame()) backend->audio->StopSample(-1, false);
 }
 

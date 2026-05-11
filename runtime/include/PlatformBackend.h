@@ -39,6 +39,7 @@ public:
 		return &it->second;
 	}
 
+	virtual void Log(std::string text) {}
 protected:
 	PakFile pakFile;
 	std::unordered_map<unsigned int, std::vector<uint8_t>> collisionMaskCache;

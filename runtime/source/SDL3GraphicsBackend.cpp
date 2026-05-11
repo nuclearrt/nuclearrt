@@ -24,12 +24,12 @@ void SDL3GraphicsBackend::Initialize() {
 	std::string windowTitle = Application::Instance().GetAppData()->GetAppName();
 	
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD)) {
-		std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
+		backend->GetPlatform()->Log("SDL_Init Error: " + std::string(SDL_GetError()));
 		return;
 	}
 
 	if (!TTF_Init()) {
-		std::cerr << "TTF_Init Error: " << SDL_GetError() << std::endl;
+		backend->GetPlatform()->Log("TTF_Init Error: " + std::string(SDL_GetError()));
 		return;
 	}
 
@@ -37,7 +37,7 @@ void SDL3GraphicsBackend::Initialize() {
 	SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL;
 	window = SDL_CreateWindow(windowTitle.c_str(), windowWidth, windowHeight, flags);
 	if (window == nullptr) {
-		std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
+		backend->GetPlatform()->Log("SDL_CreateWindow Error: " + std::string(SDL_GetError()));
 		return;
 	}
 	
@@ -48,7 +48,7 @@ void SDL3GraphicsBackend::Initialize() {
 	
 	glContext = SDL_GL_CreateContext(window);
 	if (glContext == nullptr) {
-		std::cerr << "SDL_GL_CreateContext Error: " << SDL_GetError() << std::endl;
+		backend->GetPlatform()->Log("SDL_GL_CreateContext Error: " + std::string(SDL_GetError()));
 		return;
 	}
 		
@@ -59,7 +59,8 @@ void SDL3GraphicsBackend::Initialize() {
 	#if !defined(PLATFORM_MACOS)
 	GLenum glewErr = glewInit();
 	if (glewErr != GLEW_OK) {
-		std::cerr << "GLEW Init Error: " << glewGetErrorString(glewErr) << std::endl;
+		std::string errorStr = reinterpret_cast<const char*>(glewGetErrorString(glewErr));
+		backend->GetPlatform()->Log("GLEW Init Error: " + errorStr);
 		return;
 	}
 	#endif
@@ -293,7 +294,7 @@ void SDL3GraphicsBackend::Deinitialize()
 void SDL3GraphicsBackend::BeginDrawing()
 {
 	if (glContext == nullptr) {
-		std::cerr << "BeginDrawing called with null renderer!" << std::endl;
+		backend->GetPlatform()->Log("BeginDrawing called with null renderer!");
 		return;
 	}
 
@@ -319,7 +320,7 @@ void SDL3GraphicsBackend::BeginDrawing()
 void SDL3GraphicsBackend::EndDrawing()
 {
 	if (glContext == nullptr) {
-		std::cerr << "EndDrawing called with null renderer!" << std::endl;
+		backend->GetPlatform()->Log("EndDrawing called with null renderer!");
 		return;
 	}
 
@@ -443,7 +444,7 @@ GLuint SDL3GraphicsBackend::CompileShader(GLenum type, const char* source) {
 	if (!success) {
 		char infoLog[512];
 		glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-		std::cerr << "Shader compilation error: " << infoLog << std::endl;
+		backend->GetPlatform()->Log("Shader compilation error: " + std::string(infoLog));
 		return 0;
 	}
 	return shader;
@@ -467,7 +468,7 @@ GLuint SDL3GraphicsBackend::CreateShaderProgram(const char* vertexSrc, const cha
 	if (!success) {
 		char infoLog[512];
 		glGetProgramInfoLog(program, 512, nullptr, infoLog);
-		std::cerr << "Shader link error: " << infoLog << std::endl;
+		backend->GetPlatform()->Log("Shader link error: " + std::string(infoLog));
 		return 0;
 	}
 	
@@ -481,7 +482,7 @@ std::string SDL3GraphicsBackend::LoadShaderSource(const std::string& filename) {
 	if (!backend) return "";
 	std::vector<uint8_t> data = backend->GetPlatform()->GetPakFile().GetData(filename);
 	if (data.empty()) {
-		std::cerr << "Failed to load shader: " << filename  << ". Loading default shader..." << std::endl;
+		backend->GetPlatform()->Log("Failed to load shader: " + filename  + ". Loading default shader...");
 		return LoadShaderSource("shaders/standard/normal.frag");
 	}
 	return std::string(reinterpret_cast<char*>(data.data()), data.size());
@@ -490,7 +491,7 @@ std::string SDL3GraphicsBackend::LoadShaderSource(const std::string& filename) {
 void SDL3GraphicsBackend::CreateStandardShaders() {
 	std::string vertexSrc = LoadShaderSource("shaders/standard/default.vert");
 	if (vertexSrc.empty()) {
-		std::cerr << "Failed to load default vertex shader" << std::endl;
+		backend->GetPlatform()->Log("Failed to load default vertex shader");
 		return;
 	}
 	
@@ -505,9 +506,9 @@ void SDL3GraphicsBackend::CreateStandardShaders() {
 		nullptr,
 		nullptr,
 		nullptr,
-		"shaders/standard/add.frag",
+		nullptr, // "shaders/standard/add.frag" is supposed to be in the pak file, but it's not so it's very funny. -indeednotfunny
 		"shaders/standard/monochrome.frag",
-		"shaders/standard/subtract.frag",
+		nullptr, // same here with subtract.frag -- "shaders/standard/subtract.frag" -indeednotfunny
 		nullptr
 	};
 	
@@ -516,13 +517,13 @@ void SDL3GraphicsBackend::CreateStandardShaders() {
 		const char* fragFile = effectFiles[i] ? effectFiles[i] : effectFiles[0];
 		std::string fragSrc = LoadShaderSource(fragFile);
 		if (fragSrc.empty()) {
-			std::cerr << "Failed to load fragment shader: " << fragFile << std::endl;
+			backend->GetPlatform()->Log("Failed to load fragment shader: " + std::string(fragFile));
 			continue;
 		}
 		
 		effectShaders[i].program = CreateShaderProgram(vertexSrc.c_str(), fragSrc.c_str());
 		if (effectShaders[i].program == 0) {
-			std::cerr << "Failed to create effect shader " << i << std::endl;
+			backend->GetPlatform()->Log("Failed to create effect shader " + std::to_string(i));
 			continue;
 		}
 		
@@ -534,13 +535,13 @@ void SDL3GraphicsBackend::CreateStandardShaders() {
 	// load color shaders for shapes and shit
 	std::string colorFragSrc = LoadShaderSource("shaders/standard/color.frag");
 	if (colorFragSrc.empty()) {
-		std::cerr << "Failed to load color shaders" << std::endl;
+		backend->GetPlatform()->Log("Failed to load color shaders");
 		return;
 	}
 	
 	colorShaderProgram = CreateShaderProgram(vertexSrc.c_str(), colorFragSrc.c_str());
 	if (colorShaderProgram == 0) {
-		std::cerr << "Failed to create color shader program" << std::endl;
+		backend->GetPlatform()->Log("Failed to create color shader program");
 		return;
 	}
 	
@@ -550,13 +551,13 @@ void SDL3GraphicsBackend::CreateStandardShaders() {
 
 	std::string textureQuickbackdropFragSrc = LoadShaderSource("shaders/standard/normal_quickbackdrop.frag");
 	if (textureQuickbackdropFragSrc.empty()) {
-		std::cerr << "Failed to load textured quick backdrop shader" << std::endl;
+		backend->GetPlatform()->Log("Failed to load textured quick backdrop shader");
 		return;
 	}
 	
 	textureQuickbackdropShaderProgram = CreateShaderProgram(vertexSrc.c_str(), textureQuickbackdropFragSrc.c_str());
 	if (textureQuickbackdropShaderProgram == 0) {
-		std::cerr << "Failed to create textured quick backdrop shader program" << std::endl;
+		backend->GetPlatform()->Log("Failed to create textured quick backdrop shader program");
 		return;
 	}
 	textureQuickbackdropShaderMVPLoc = glGetUniformLocation(textureQuickbackdropShaderProgram, "uMVP");
@@ -567,13 +568,13 @@ void SDL3GraphicsBackend::CreateStandardShaders() {
 
 	std::string gradientFragSrc = LoadShaderSource("shaders/standard/gradient.frag");
 	if (gradientFragSrc.empty()) {
-		std::cerr << "Failed to load gradient shader" << std::endl;
+		backend->GetPlatform()->Log("Failed to load gradient shader");
 		return;
 	}
 
 	gradientShaderProgram = CreateShaderProgram(vertexSrc.c_str(), gradientFragSrc.c_str());
 	if (gradientShaderProgram == 0) {
-		std::cerr << "Failed to create gradient shader program" << std::endl;
+		backend->GetPlatform()->Log("Failed to create gradient shader program");
 		return;
 	}
 
@@ -626,7 +627,7 @@ void SDL3GraphicsBackend::CreateRenderTarget(int width, int height) {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTargetTexture, 0);
 	
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		std::cerr << "Framebuffer is not complete!" << std::endl;
+		backend->GetPlatform()->Log("Framebuffer is not complete!");
 	}
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -665,7 +666,7 @@ void SDL3GraphicsBackend::CreateLayerRenderTarget(int width, int height) {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, layerRenderTargetTexture, 0);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		std::cerr << "Layer framebuffer is not complete!" << std::endl;
+		backend->GetPlatform()->Log("Layer framebuffer is not complete!");
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -817,7 +818,7 @@ void SDL3GraphicsBackend::LoadTexture(int id) {
 
 	auto imageInfo = ImageBank::Instance().GetImage(id);
 	if (!imageInfo) {
-		std::cerr << "ImageBank::GetImage Error: " << "Image with id " << id << " not found" << std::endl;
+		backend->GetPlatform()->Log("ImageBank::GetImage Error: Image with id " + std::to_string(id) + " not found");
 		return;
 	}
 
@@ -827,21 +828,21 @@ void SDL3GraphicsBackend::LoadTexture(int id) {
 	if (!backend->platform) return;
 	std::vector<uint8_t> data = backend->GetPlatform()->GetPakFile().GetData(imageFileName);
 	if (data.empty()) {
-		std::cerr << "PakFile::GetData Error: " << "Image " << imageFileName << " not found" << std::endl;
+		backend->GetPlatform()->Log("PakFile::GetData Error: Image " + std::string(imageFileName) + " not found");
 		return;
 	}
 
 	SDL_IOStream* stream = SDL_IOFromMem(data.data(), data.size());
 	SDL_Surface* surface = IMG_Load_IO(stream, true);
 	if (surface == nullptr) {
-		std::cerr << "IMG_Load_IO Error: " << SDL_GetError() << std::endl;
+		backend->GetPlatform()->Log("IMG_Load_IO Error: " + std::string(SDL_GetError()));
 		return;
 	}
 	
 	SDL_Surface* rgbaSurface = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_RGBA32);
 	SDL_DestroySurface(surface);
 	if (rgbaSurface == nullptr) {
-		std::cerr << "SDL_ConvertSurface Error: " << SDL_GetError() << std::endl;
+		backend->GetPlatform()->Log("SDL_ConvertSurface Error: " + std::string(SDL_GetError()));
 		return;
 	}
 	
@@ -952,7 +953,7 @@ EffectShader* SDL3GraphicsBackend::LoadShader(const std::string& name, const std
 
 	GLuint program = CreateShaderProgram(vertSrc.c_str(), fragSrc.c_str());
 	if (program == 0) {
-		std::cerr << "Failed to create third party shader: " << name << std::endl;
+		backend->GetPlatform()->Log("Failed to create third party shader: " + name);
 		return nullptr;
 	}
 
@@ -1163,7 +1164,7 @@ void SDL3GraphicsBackend::LoadFont(int id)
 	//get font info
 	FontInfo* fontInfo = FontBank::Instance().GetFont(id);
 	if (fontInfo == nullptr) {
-		std::cerr << "FontBank::GetFont Error: " << "Font with id " << id << " not found" << std::endl;
+		backend->GetPlatform()->Log("FontBank::GetFont Error: Font with id " + std::to_string(id) + " not found");
 		return;
 	}
 
@@ -1178,7 +1179,7 @@ void SDL3GraphicsBackend::LoadFont(int id)
 		if (!backend->platform) return;
 		std::shared_ptr<std::vector<uint8_t>> buffer = std::make_shared<std::vector<uint8_t>>(backend->platform->GetPakFile().GetData("fonts/" + fontInfo->FontFileName));
 		if (buffer->empty()) {
-			std::cerr << "PakFile::GetData Error: " << "Font with file name " << fontInfo->FontFileName << " not found" << std::endl;
+			backend->GetPlatform()->Log("PakFile::GetData Error: Font with file name " + fontInfo->FontFileName + " not found");
 			return;
 		}
 		stream = SDL_IOFromMem(buffer->data(), buffer->size());
@@ -1187,7 +1188,7 @@ void SDL3GraphicsBackend::LoadFont(int id)
 
 	TTF_Font* font = TTF_OpenFontIO(stream, true, static_cast<float>(fontInfo->Height));
 	if (!font) {
-		std::cerr << "TTF_OpenFontIO Error: " << SDL_GetError() << std::endl;
+		backend->GetPlatform()->Log("TTF_OpenFontIO Error: " + std::string(SDL_GetError()));
 		return;
 	}
 	
@@ -1301,14 +1302,14 @@ void SDL3GraphicsBackend::DrawText(FontInfo* fontInfo, int x, int y, int color, 
 
 		SDL_Surface* surface = TTF_RenderText_Blended_Wrapped(font, modifiedText.c_str(), 0, RGBToSDLColor(color), 0);
 		if (surface == nullptr) {
-			std::cerr << "TTF_RenderText_Blended_Wrapped Error: " << SDL_GetError() << std::endl;
+			backend->GetPlatform()->Log("TTF_RenderText_Blended_Wrapped Error: " + std::string(SDL_GetError()));
 			return;
 		}
 
 		SDL_Surface* rgbaSurface = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_RGBA32);
 		SDL_DestroySurface(surface);
 		if (rgbaSurface == nullptr) {
-			std::cerr << "SDL_ConvertSurface Error: " << SDL_GetError() << std::endl;
+			backend->GetPlatform()->Log("SDL_ConvertSurface Error: " + std::string(SDL_GetError()));
 			return;
 		}
 

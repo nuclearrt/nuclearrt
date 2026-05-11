@@ -26,6 +26,7 @@ public:
 
 	bool IsWindowFocused() const { return windowFocused; }
 
+	void Log(std::string text) override;
 private:
 	SDL3Backend* backend = nullptr;
 

@@ -12,7 +12,7 @@ public class SendToOutputAction : ActionBase
 		StringBuilder result = new StringBuilder();
 
 		result.AppendLine("#ifdef _DEBUG");
-		result.AppendLine($"	std::cout << {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)} << std::endl;");
+		result.AppendLine($"	Application::Instance().GetBackend()->platform->Log({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 		result.AppendLine("#endif");
 
 		return result.ToString();
