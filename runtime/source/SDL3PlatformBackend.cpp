@@ -15,7 +15,7 @@
 void SDL3PlatformBackend::Initialize()
 {
 	if (!pakFile.Load(GetAssetsFileName())) {
-		std::cerr << "PakFile::Load Error: Failed to load assets file" << std::endl;
+		Log("PakFile::Load Error: Failed to load assets file");
 		return;
 	}
 }
@@ -93,4 +93,5 @@ std::string SDL3PlatformBackend::GetAssetsFileName()
 	const char* basePath = SDL_GetBasePath();
 	return std::string(basePath) + "assets.pak";
 }
+void SDL3PlatformBackend::Log(std::string text) {SDL_Log(text.c_str());}
 #endif

@@ -56,13 +56,13 @@ void SDL3AudioBackend::Initialize()
 	spec.format = SDL_AUDIO_F32;
 	audio_device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
 	if (!audio_device) {
-		std::cerr << "SDL_OpenAudioDevice Error : " << SDL_GetError() << std::endl;
+		backend->GetPlatform()->Log("SDL_OpenAudioDevice Error : " + std::string(SDL_GetError()));
 		return;
 	}
 	masterStream = SDL_CreateAudioStream(&spec, NULL);
 	SDL_BindAudioStream(audio_device, masterStream);
 	SDL_SetAudioStreamGetCallback(masterStream, AudioCallback, &channels); // Put callback only runs when SDL_PutAudioStreamData is ran, so use the getcallback to put data instead
-	std::cout << "Opened Audio Device.\n";
+	backend->GetPlatform()->Log("Opened Audio Device.");
 }
 
 
@@ -89,42 +89,42 @@ void SDL3AudioBackend::Deinitialize()
 	SDL_UnbindAudioStream(masterStream);
 	SDL_DestroyAudioStream(masterStream);
 	SDL_CloseAudioDevice(audio_device);
-	std::cout << "AudioBackend shut down successfully.\n";
+	backend->GetPlatform()->Log("AudioBackend shut down successfully.");
 }
 
 bool SDL3AudioBackend::LoadSample(int id, int channel) {
-	std::cout << "Loading Sample : " << id << "\n";
+	backend->GetPlatform()->Log("Loading Sample : " + std::to_string(id));
 	if (id < 0) return false;
 	if (channels[channel].data) {
-		std::cout << "Sample already loaded, returning true.\n";
+		backend->GetPlatform()->Log("Sample already loaded, returning true.");
 		return true;
 	}
 	SoundInfo* soundInfo = SoundBank::Instance().GetSound(id);
 	if (!soundInfo) {
-		std::cerr << "SoundBank Error: Sound ID " << id << " not found!" << std::endl;
+		backend->GetPlatform()->Log("SoundBank Error: Sound ID " + std::to_string(id) + " not found!");
 		return false;
 	}
-	std::cout << soundInfo->Type << "\n";
+	backend->GetPlatform()->Log(soundInfo->Type);
 	if (!backend->platform) return false;
 	std::vector<uint8_t> data = backend->platform->GetPakFile().GetData("sounds/" + std::to_string(id) + "." + soundInfo->Type);
 	if (data.empty()) {
-		std::cerr << "PakFile::GetData Error: Sample with id " << id << " not found" << std::endl;
+		backend->GetPlatform()->Log("PakFile::GetData Error: Sample with id " + std::to_string(id) + " not found");
 		return false;
 	}
 	if (soundInfo->Type == "wav") {
 		SDL_IOStream* stream = SDL_IOFromMem(data.data(), data.size());
 		if (!SDL_LoadWAV_IO(stream, true, &channels[channel].spec, &channels[channel].data, &channels[channel].data_len)) {
-			std::cout << "SDL_LoadWAV_IO Error (WAV) : " << SDL_GetError() << std::endl;
+			backend->GetPlatform()->Log("SDL_LoadWAV_IO Error (WAV) : " + std::string(SDL_GetError()));
 			return false;
 		}
-		std::cout << "Loaded WAV Sample ID : " << id << "\n";
+		backend->GetPlatform()->Log("Loaded WAV Sample ID : " + std::to_string(id));
 	}
 	else if (soundInfo->Type == "ogg") {
 		int channels, samplerate;
 		short* output = nullptr;
 		int numSamples = stb_vorbis_decode_memory(data.data(), data.size(), &channels, &samplerate, &output);
 		if (numSamples <= 0 || !output) {
-			std::cout << "stb_vorbis_decode_memory failed.\n";
+			backend->GetPlatform()->Log("stb_vorbis_decode_memory failed.");
 			return false;
 		}
 		int totalSamples = numSamples * channels;
@@ -135,18 +135,18 @@ bool SDL3AudioBackend::LoadSample(int id, int channel) {
 		this->channels[channel].spec.channels = channels;
 		this->channels[channel].spec.format = SDL_AUDIO_S16;
 		free(output);
-		std::cout << "Loaded OGG Sample ID : " << id << "\n";
+		backend->GetPlatform()->Log("Loaded OGG Sample ID : " + std::to_string(id));
 	}
 	else if (soundInfo->Type == "mp3") {
 		drmp3 mp3;
 		if (!drmp3_init_memory(&mp3, data.data(), data.size(), NULL)) {
-			std::cout << "Failed to decode mp3 data.\n";
+			backend->GetPlatform()->Log("Failed to decode mp3 data.");
 			drmp3_uninit(&mp3);
 			return false;
 		}
 		drmp3_uint64 frameCount = drmp3_get_pcm_frame_count(&mp3);
 		if (frameCount == 0) {
-			std::cout << "No sample frames in MP3\n";
+			backend->GetPlatform()->Log("No sample frames in MP3");
 			drmp3_uninit(&mp3);
 			return false;
 		}
@@ -155,8 +155,7 @@ bool SDL3AudioBackend::LoadSample(int id, int channel) {
 		channels[channel].data = (Uint8*)SDL_malloc(dataLen);
 		drmp3_uint64 framesRead = drmp3_read_pcm_frames_s16(&mp3, frameCount, (drmp3_int16*)channels[channel].data);
 		if (!channels[channel].data) {
-			std::cout << "Bad MP3 Data\n";
-			SDL_free(channels[channel].data);
+			backend->GetPlatform()->Log("Bad MP3 Data");
 			drmp3_uninit(&mp3);
 			return false;
 		}
@@ -167,30 +166,30 @@ bool SDL3AudioBackend::LoadSample(int id, int channel) {
 		drmp3_uninit(&mp3);
 	}
 	else {
-		std::cout << "Audio Data Type" << soundInfo->Type << "not supported.\n";
+		backend->GetPlatform()->Log("Audio Data Type" + soundInfo->Type + "not supported.");
 		return false;
 	}
 	channels[channel].name = soundInfo->Name;
 	return true;
 }
 bool SDL3AudioBackend::LoadSampleFile(std::string path) {
-	std::cout << "Loading Sample File : " << path << "\n";
+	backend->GetPlatform()->Log("Loading Sample File : " + path);
 	std::filesystem::path fullPath = path;
 	std::string type = fullPath.extension().string();
 	SampleFile sampleFile;
 	if (type == ".wav") {
 		if (!SDL_LoadWAV(path.c_str(), &sampleFile.spec, &sampleFile.data, &sampleFile.data_len)) {
-			std::cout << "Failed to load WAV file : " << SDL_GetError() << "\n";
+			backend->GetPlatform()->Log("Failed to load WAV file : " + std::string(SDL_GetError()));
 			return false;
 		}
-		std::cout << "Loaded WAV Sample File : " << path << "\n";
+		backend->GetPlatform()->Log("Loaded WAV Sample File : " + path);
 	}
 	else if (type == ".ogg") {
 		int channels, samplerate;
 		short* output = nullptr;
 		int numSamples = stb_vorbis_decode_filename(path.c_str(), &channels, &samplerate, &output);
 		if (numSamples <= 0 || !output) {
-			std::cout << "Failed to load OGG file : " << path << "\n";
+			backend->GetPlatform()->Log("Failed to load OGG file : " + path);
 			return false;
 		}
 		int totalSamples = numSamples * channels;
@@ -201,10 +200,37 @@ bool SDL3AudioBackend::LoadSampleFile(std::string path) {
 		sampleFile.spec.format = SDL_AUDIO_S16;
 		sampleFile.spec.channels = channels;
 		free(output);
-		std::cout << "Loaded OGG file : " << path << "\n";
+		backend->GetPlatform()->Log("Loaded OGG file : " + path);
+	}
+	else if (type == ".mp3") {
+		drmp3 mp3;
+		if (!drmp3_init_file(&mp3, path.c_str(), NULL)) {
+			backend->platform->Log("Couldn't find MP3 file");
+			return false;
+		}
+		drmp3_uint64 frameCount = drmp3_get_pcm_frame_count(&mp3);
+		if (frameCount == 0) {
+			backend->GetPlatform()->Log("No sample frames in MP3");
+			drmp3_uninit(&mp3);
+			return false;
+		}
+		int totalSamples = static_cast<int>(frameCount * mp3.channels);
+		Uint32 dataLen = totalSamples * sizeof(int16_t);
+		sampleFile.data = (Uint8*)SDL_malloc(dataLen);
+		drmp3_uint64 framesRead = drmp3_read_pcm_frames_s16(&mp3, frameCount, (drmp3_int16*)sampleFile.data);
+		if (!sampleFile.data) {
+			backend->platform->Log("Bad MP3 Data.");
+			drmp3_uninit(&mp3);
+			return false;
+		}
+		sampleFile.data_len = dataLen;
+		sampleFile.spec.channels = mp3.channels;
+		sampleFile.spec.format = SDL_AUDIO_S16;
+		sampleFile.spec.freq = mp3.sampleRate;
+		drmp3_uninit(&mp3);
 	}
 	else {
-		std::cout << "Audio File" << type << "not supported.\n";
+		backend->GetPlatform()->Log("Audio File" + type + "not supported.");
 		return false;
 	}
 	sampleFile.pathName = path;
@@ -216,7 +242,7 @@ int SDL3AudioBackend::FindSample(std::string name) {
 	if (soundInfo) {
 		if (soundInfo->Name == name) return soundInfo->Handle;
 	}
-	else std::cout << "Failed to find Sound " << name << "\n";
+	else backend->GetPlatform()->Log("Failed to find Sound " + name);
 	return -1;
 }
 
@@ -250,7 +276,7 @@ void SDL3AudioBackend::PlaySample(int id, int channel, int loops, int freq, bool
 	if (channels[channel].stream) StopSample(channel, true);
 	channels[channel].stream = SDL_CreateAudioStream(&channels[channel].spec, &spec);
 	if (!channels[channel].stream) {
-		std::cerr << "SDL_CreateAudioStream error : " << SDL_GetError() << "\n";
+		backend->GetPlatform()->Log("SDL_CreateAudioStream error : " + std::string(SDL_GetError()));
 		channels[channel].stream = nullptr;
 		return;
 	}
@@ -269,12 +295,12 @@ void SDL3AudioBackend::PlaySample(int id, int channel, int loops, int freq, bool
 	channels[channel].curHandle = id;
 	SetSampleVolume(mainVol, channel, true); // Set volume to the main one.
 	
-	std::cout << "Sample ID " << id << " is now playing at channel " << channel << ".\n";
+	backend->GetPlatform()->Log("Sample ID " + std::to_string(id) + " is now playing at channel " + std::to_string(channel) + ".");
 }
 void SDL3AudioBackend::PlaySampleFile(std::string path, int channel, int loops) {
 	auto it = sampleFiles.find(path);
 	if (it == sampleFiles.end()) {
-		std::cout << "Can't find sample path.\n";
+		backend->GetPlatform()->Log("Can't find sample path.");
 		return;
 	}
 	SampleFile& sampleFile = it->second;
@@ -303,7 +329,7 @@ void SDL3AudioBackend::PlaySampleFile(std::string path, int channel, int loops) 
 void SDL3AudioBackend::DiscardSampleFile(std::string path) {
 	auto it = sampleFiles.find(path);
 	if (it == sampleFiles.end()) {
-		std::cout << "Can't find sample path.\n";
+		backend->GetPlatform()->Log("Can't find sample path.");
 		return;
 	}
 	SampleFile& sampleFile = it->second;
@@ -512,7 +538,7 @@ void SDL3AudioBackend::StopSample(int id, bool channel) {
 	if (channel) { // check for the channel
 		if (id < 1 || id >= SDL_arraysize(channels)) return;
 		if (channels[id].stream) {
-			std::cout << "Stopping Sample : " << id << "\n";
+			backend->GetPlatform()->Log("Stopping Sample : " + std::to_string(id));
 			SDL_UnbindAudioStream(channels[id].stream);
 			SDL_DestroyAudioStream(channels[id].stream);
 			channels[id].stream = nullptr;
