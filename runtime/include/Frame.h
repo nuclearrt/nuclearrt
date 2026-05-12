@@ -121,7 +121,7 @@ public:
 
     inline std::string Hex(int v) {
         char buf[16];
-        sprintf_s(buf, "%X", v);
+        snprintf(buf, sizeof(buf), "%X", v);
         return std::string(buf);
     }
 
