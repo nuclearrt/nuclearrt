@@ -19,6 +19,8 @@ public:
 	int GetControlType(int player);
 	void SetControlType(int player, int type);
 
+	void SetControlKey(int player, short control, unsigned short key);
+
 	bool IsControlsDown(int player, short control);
 	bool IsControlsPressed(int player, short control);
 

@@ -74,6 +74,11 @@ void Input::SetControlType(int player, int type)
 	Application::Instance().GetAppData()->GetControlTypes()[player] = type;
 }
 
+void Input::SetControlKey(int player, short control, unsigned short key)
+{
+	Application::Instance().GetAppData()->GetControlKeys()[player][control] = key;
+}
+
 bool Input::IsControlsDown(int player, short control)
 {
 	int controlType = Application::Instance().GetAppData()->GetControlTypes()[player];
