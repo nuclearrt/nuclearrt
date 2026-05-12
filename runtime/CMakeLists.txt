@@ -20,8 +20,12 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 if (EMSCRIPTEN)
-  add_compile_options(-pthread)
-  add_link_options(-sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=2gb -sMAXIMUM_MEMORY=2gb -sOFFSCREENCANVAS_SUPPORT=1 -sPTHREAD_POOL_SIZE_STRICT=0 -sFORCE_FILESYSTEM=1 -sWASMFS=1 -sEXIT_RUNTIME=1 -sUSE_HARFBUZZ=1)
+    set(SDLTTF_VENDORED ON CACHE BOOL "" FORCE)
+    set(SDLTTF_HARFBUZZ OFF CACHE BOOL "" FORCE)
+    set(SDLTTF_PLUTOSVG OFF CACHE BOOL "" FORCE)
+    set(SDLTTF_INSTALL OFF CACHE BOOL "" FORCE)
+
+    add_link_options(-sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=2gb -sMAXIMUM_MEMORY=4096Mb -sOFFSCREENCANVAS_SUPPORT=1 -sFORCE_FILESYSTEM=1 -sWASMFS=1 -sEXIT_RUNTIME=1)
 endif()
 
 include(FetchContent)
@@ -60,14 +64,16 @@ else()
     message(STATUS "Using local SDL3_image")
 endif()
 
-set(SDLTTF_VENDORED ON)
-
-find_package(SDL3_ttf QUIET)
-if (NOT SDL3_ttf_FOUND)
-    message(STATUS "Getting SDL3_ttf from Github")
-    include_dependency(SDL3_ttf https://github.com/libsdl-org/SDL_ttf.git release-3.2.2)
+if(NOT EMSCRIPTEN)
+    find_package(SDL3_ttf QUIET)
+    if (NOT SDL3_ttf_FOUND)
+        message(STATUS "Getting SDL3_ttf from Github")
+        include_dependency(SDL3_ttf https://github.com/libsdl-org/SDL_ttf.git release-3.2.2)
+    else()
+        message(STATUS "Using local SDL3_ttf")
+    endif()
 else()
-    message(STATUS "Using local SDL3_ttf")
+    include_dependency(SDL3_ttf https://github.com/libsdl-org/SDL_ttf.git release-3.2.2)
 endif()
 
 if(WIN32 OR (UNIX AND NOT APPLE AND NOT EMSCRIPTEN))
@@ -158,7 +164,7 @@ if(NOT EMSCRIPTEN)
     target_include_directories(${PROJECT_NAME} PRIVATE ${SDL3_ttf_INCLUDE_DIRS})
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE 
+target_link_libraries(${PROJECT_NAME} PUBLIC 
     SDL3::SDL3
     SDL3_image::SDL3_image
     SDL3_ttf::SDL3_ttf
