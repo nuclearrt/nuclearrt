@@ -128,7 +128,7 @@ public:
 
 	int GetParagraphCount()
 	{
-		return Paragraphs.size();
+		return static_cast<int>(Paragraphs.size());
 	}
 
 	std::vector<unsigned int> GetFontsUsed() override {
