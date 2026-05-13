@@ -177,7 +177,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 # Set output directory
 if(EMSCRIPTEN)
     set_target_properties(${PROJECT_NAME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/web"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output"
     SUFFIX ".html"
 )
 elseif(APPLE AND NOT EMSCRIPTEN)
@@ -227,6 +227,8 @@ else()
     foreach(source_dir IN LISTS COPY_SOURCE_DIRS)
         target_link_options(${PROJECT_NAME} PRIVATE "SHELL:--embed-file \"${source_dir}@/\"")
     endforeach()
+
+    target_link_options(${PROJECT_NAME} PRIVATE "SHELL:--shell-file \"${CMAKE_CURRENT_SOURCE_DIR}/web_shell.html\"")
 endif()
 
 #copy SDL3 dlls
