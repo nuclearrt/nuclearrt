@@ -177,6 +177,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 # Set output directory
 if(EMSCRIPTEN)
     set_target_properties(${PROJECT_NAME} PROPERTIES
+    OUTPUT_NAME "index"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output"
     SUFFIX ".html"
 )
