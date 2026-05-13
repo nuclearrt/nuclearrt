@@ -25,13 +25,13 @@ public:
             std::memset(data.data(), 0, data.size() * sizeof(unsigned int));
             return;
         }
-        const unsigned int u = static_cast<unsigned int>(color);
+        const unsigned int u = toRgba(static_cast<unsigned int>(color));
         std::fill(data.begin(), data.end(), u);
     }
 
     void SetPixel(int x, int y, int color) {
         if (x < 0 || x >= width || y < 0 || y >= height) return;
-        data[y * width + x] = color;
+        data[y * width + x] = toRgba(static_cast<uint32_t>(color));
     }
 
     void DrawLine(int x1, int y1, int x2, int y2, int color) {
@@ -116,6 +116,14 @@ private:
     std::vector<uint32_t> data;
     int width;
     int height;
+
+    // maybe we should just use rgba for everything?
+    inline static uint32_t toRgba(uint32_t color) {
+        return (color & 0xff000000u)
+            | ((color & 0xffu) << 16)
+            | (color & 0xff00u)
+            | ((color >> 16) & 0xffu);
+    }
 
     void Init(int width, int height) {
         this->width = width;
