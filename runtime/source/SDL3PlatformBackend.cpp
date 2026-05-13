@@ -12,6 +12,10 @@
 #include <imgui_impl_sdl3.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/console.h>
+#endif
+
 void SDL3PlatformBackend::Initialize()
 {
 	if (!pakFile.Load(GetAssetsFileName())) {
@@ -93,5 +97,11 @@ std::string SDL3PlatformBackend::GetAssetsFileName()
 	const char* basePath = SDL_GetBasePath();
 	return std::string(basePath) + "assets.pak";
 }
-void SDL3PlatformBackend::Log(std::string text) {SDL_Log(text.c_str());}
+void SDL3PlatformBackend::Log(std::string text) {
+	#ifdef __EMSCRIPTEN__
+	emscripten_console_log(text.c_str());
+	#else
+	SDL_Log(text.c_str());
+	#endif
+}
 #endif
