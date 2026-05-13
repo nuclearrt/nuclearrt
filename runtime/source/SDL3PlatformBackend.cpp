@@ -6,7 +6,7 @@
 #include <iostream>
 #include <SDL3/SDL.h>
 #include "SDL3Backend.h"
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 #include "DebugUI.h"
 #include "imgui.h"
 #include <imgui_impl_sdl3.h>
@@ -24,7 +24,7 @@ bool SDL3PlatformBackend::ShouldQuit()
 {
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 		// Process ImGui events
 		if (DEBUG_UI.IsEnabled()) {
 			ImGui_ImplSDL3_ProcessEvent(&event);
