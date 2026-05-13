@@ -10,8 +10,13 @@
 #include "SDL3GraphicsBackend.h"
 #endif
 
+#ifdef __EMSCRIPTEN__
+#define SHADER_PREFIX "#version 300 es\r\nprecision highp float;\r\n"
+#else
+#define SHADER_PREFIX "#version 330 core\r\n"
+#endif
+
 const std::string panoramaShader = R"(
-#version 330 core
 in vec2 TexCoord;
 out vec4 FragColor;
 
@@ -41,7 +46,6 @@ void main() {
 )";
 
 const std::string perspectiveShader = R"(
-#version 330 core
 in vec2 TexCoord;
 out vec4 FragColor;
 
@@ -72,7 +76,6 @@ void main()
 )";
 
 const std::string sineWavesShader = R"(
-#version 330 core
 in vec2 TexCoord;
 out vec4 FragColor;
 
@@ -108,7 +111,6 @@ void main()
 )";
 
 const std::string sineOffsetShader = R"(
-#version 330 core
 in vec2 TexCoord;
 out vec4 FragColor;
 
@@ -165,14 +167,14 @@ void PerspectiveExtention::SetEffectType(char effect)
 
     switch (effect) {
 		case 0: // Panorama
-			sdl3graphics->LoadShader("panorama", panoramaShader);
+			sdl3graphics->LoadShader("panorama", SHADER_PREFIX + panoramaShader);
 			effectInstance = new EffectInstance("panorama", {
 				::EffectParameter("fB", 1, 0.0f),
 				::EffectParameter("pDir", 0, 0),
 			});
 		break;
         case 1: // Perspective
-			sdl3graphics->LoadShader("perspective", perspectiveShader);
+			sdl3graphics->LoadShader("perspective", SHADER_PREFIX + perspectiveShader);
 			effectInstance = new EffectInstance("perspective", {
 				::EffectParameter("fA", 1, 0.0f),
 				::EffectParameter("fB", 1, 0.0f),
@@ -180,7 +182,7 @@ void PerspectiveExtention::SetEffectType(char effect)
 			});
 		break;
 		case 2: // Sine Waves
-			sdl3graphics->LoadShader("sineWaves", sineWavesShader);
+			sdl3graphics->LoadShader("sineWaves", SHADER_PREFIX + sineWavesShader);
 			effectInstance = new EffectInstance("sineWaves", {
 				::EffectParameter("Zoom", 1, 0.0f),
 				::EffectParameter("WaveIncrement", 1, 0.0f),
@@ -189,7 +191,7 @@ void PerspectiveExtention::SetEffectType(char effect)
 			});
 		break;
 		case 3: // Sine Offset
-			sdl3graphics->LoadShader("sineOffset", sineOffsetShader);
+			sdl3graphics->LoadShader("sineOffset", SHADER_PREFIX + sineOffsetShader);
 			effectInstance = new EffectInstance("sineOffset", {
 				::EffectParameter("Zoom", 1, 0.0f),
 				::EffectParameter("WaveIncrement", 1, 0.0f),
