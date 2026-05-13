@@ -191,9 +191,16 @@ else()
     )
 endif()
 
-# Copy directory setup
-set(COPY_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/copy")
-set(ASSETS_SOURCE_FILE "${COPY_SOURCE_DIR}/assets.pak")
+set(COPY_SOURCE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/copy/all")
+if(EMSCRIPTEN)
+    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/copy/web")
+        list(APPEND COPY_SOURCE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/copy/web")
+    endif()
+elseif(WIN32 OR APPLE OR UNIX)
+    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/copy/desktop")
+        list(APPEND COPY_SOURCE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/copy/desktop")
+    endif()
+endif()
 
 # Set output destination based on platform
 if(APPLE AND NOT EMSCRIPTEN)
@@ -204,15 +211,22 @@ else()
     set(COPY_DEST_DIR "${CMAKE_BINARY_DIR}/bin")
 endif()
 
+set(copy_dirs_commands "")
+foreach(source_dir IN LISTS COPY_SOURCE_DIRS)
+    list(APPEND copy_dirs_commands
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${source_dir}" "${COPY_DEST_DIR}")
+endforeach()
+
 if(NOT EMSCRIPTEN)
     add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${COPY_SOURCE_DIR} ${COPY_DEST_DIR}
+        ${copy_dirs_commands}
         COMMENT "Copying files from copy directory to build output"
     )
 else()
-    target_link_options(${PROJECT_NAME} PRIVATE --embed-file ${ASSETS_SOURCE_FILE}@assets.pak)
+    foreach(source_dir IN LISTS COPY_SOURCE_DIRS)
+        target_link_options(${PROJECT_NAME} PRIVATE "SHELL:--embed-file \"${source_dir}@/\"")
+    endforeach()
 endif()
 
 #copy SDL3 dlls

@@ -18,7 +18,7 @@
 
 void SDL3PlatformBackend::Initialize()
 {
-	if (!pakFile.Load(GetAssetsFileName())) {
+	if (!pakFile.Load(GetAssetsDirectory())) {
 		Log("PakFile::Load Error: Failed to load assets file");
 		return;
 	}
@@ -94,11 +94,11 @@ std::string SDL3PlatformBackend::GetPlatformName()
 #endif
 }
 
-std::string SDL3PlatformBackend::GetAssetsFileName()
+std::string SDL3PlatformBackend::GetAssetsDirectory()
 {
-	const char* basePath = SDL_GetBasePath();
-	return std::string(basePath) + "assets.pak";
+	return std::string(SDL_GetBasePath());
 }
+
 void SDL3PlatformBackend::Log(std::string text) {
 	#ifdef __EMSCRIPTEN__
 	emscripten_console_log(text.c_str());

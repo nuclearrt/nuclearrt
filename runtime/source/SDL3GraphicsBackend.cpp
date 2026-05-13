@@ -102,7 +102,7 @@ void SDL3GraphicsBackend::Initialize() {
 	
 	DEBUG_UI.AddWindow(Application::Instance().GetAppData()->GetAppName(), [this]() {
 		ImGui::Text("Platform: %s", backend->platform ? backend->platform->GetPlatformName().c_str() : "");
-		ImGui::Text("Assets File: %s", backend->platform ? backend->platform->GetAssetsFileName().c_str() : "");
+		ImGui::Text("Assets directory: %s", backend->platform ? backend->platform->GetAssetsDirectory().c_str() : "");
 
 		if (ImGui::CollapsingHeader("Window")) {
 			ImGui::Checkbox("Fit Inside", &Application::Instance().GetAppData()->GetFitInside());
