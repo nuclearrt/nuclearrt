@@ -14,10 +14,22 @@
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/console.h>
+#include <emscripten.h>
 #endif
 
 void SDL3PlatformBackend::Initialize()
 {
+	//init persistent storage for web
+#if defined(PLATFORM_WEB)
+EM_ASM(
+	FS.mkdir('/disk');
+	FS.mount(IDBFS, {autoPersist: true}, '/disk');
+
+	FS.syncfs(true, function (err) {
+	});
+);
+#endif
+
 	if (!pakFile.Load(GetAssetsDirectory())) {
 		Log("PakFile::Load Error: Failed to load assets file");
 		return;

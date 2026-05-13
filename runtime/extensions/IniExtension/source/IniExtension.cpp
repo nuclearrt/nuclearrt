@@ -190,6 +190,8 @@ std::filesystem::path IniExtension::GetPlatformSaveDirectory()
 		return std::filesystem::path(home) / ".local" / "share" / "NuclearApplications";
 	}
 	return std::filesystem::path();
+#elif defined(PLATFORM_WEB)
+	return std::filesystem::path("/disk/AppData/Roaming/NuclearApplications");
 #else
 	return std::filesystem::path();
 #endif
