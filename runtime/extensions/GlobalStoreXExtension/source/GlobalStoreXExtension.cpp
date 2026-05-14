@@ -272,7 +272,7 @@ short GlobalStoreXExtension::GetShort(int index)
 
 void GlobalStoreXExtension::SaveAllINI(const std::string& fileName, const std::string& group)
 {
-    mINI::INIFile file(fileName);
+    mINI::INIFile file(GetNormalizedPath(fileName));
     mINI::INIStructure ini;
 
     file.read(ini);
@@ -314,7 +314,7 @@ void GlobalStoreXExtension::SaveAllINI(const std::string& fileName, const std::s
 
 void GlobalStoreXExtension::LoadAllINI(const std::string& fileName, const std::string& group)
 {
-    mINI::INIFile file(fileName);
+    mINI::INIFile file(GetNormalizedPath(fileName));
     mINI::INIStructure ini;
 
     if (!file.read(ini)) return;
@@ -359,7 +359,7 @@ void GlobalStoreXExtension::LoadAllINI(const std::string& fileName, const std::s
 
 void GlobalStoreXExtension::SaveIntegerINI(const std::string& fileName, const std::string& group)
 {
-    mINI::INIFile file(fileName);
+    mINI::INIFile file(GetNormalizedPath(fileName));
     mINI::INIStructure ini;
 
     file.read(ini);
@@ -377,7 +377,7 @@ void GlobalStoreXExtension::SaveIntegerINI(const std::string& fileName, const st
 
 void GlobalStoreXExtension::LoadIntegerINI(const std::string& fileName, const std::string& group)
 {
-    mINI::INIFile file(fileName);
+    mINI::INIFile file(GetNormalizedPath(fileName));
     mINI::INIStructure ini;
 
     if (!file.read(ini)) return;
@@ -395,7 +395,7 @@ void GlobalStoreXExtension::LoadIntegerINI(const std::string& fileName, const st
 
 void GlobalStoreXExtension::SaveStringINI(const std::string& fileName, const std::string& group)
 {
-    mINI::INIFile file(fileName);
+    mINI::INIFile file(GetNormalizedPath(fileName));
     mINI::INIStructure ini;
 
     file.read(ini);
@@ -413,7 +413,7 @@ void GlobalStoreXExtension::SaveStringINI(const std::string& fileName, const std
 
 void GlobalStoreXExtension::LoadStringINI(const std::string& fileName, const std::string& group)
 {
-    mINI::INIFile file(fileName);
+    mINI::INIFile file(GetNormalizedPath(fileName));
     mINI::INIStructure ini;
 
     if (!file.read(ini)) return;
@@ -432,7 +432,7 @@ void GlobalStoreXExtension::LoadStringINI(const std::string& fileName, const std
 
 void GlobalStoreXExtension::SaveBoolINI(const std::string& fileName, const std::string& group)
 {
-    mINI::INIFile file(fileName);
+    mINI::INIFile file(GetNormalizedPath(fileName));
     mINI::INIStructure ini;
 
     file.read(ini);
@@ -450,7 +450,7 @@ void GlobalStoreXExtension::SaveBoolINI(const std::string& fileName, const std::
 
 void GlobalStoreXExtension::LoadBoolINI(const std::string& fileName, const std::string& group)
 {
-    mINI::INIFile file(fileName);
+    mINI::INIFile file(GetNormalizedPath(fileName));
     mINI::INIStructure ini;
 
     if (!file.read(ini)) return;
@@ -468,7 +468,7 @@ void GlobalStoreXExtension::LoadBoolINI(const std::string& fileName, const std::
 
 void GlobalStoreXExtension::SaveShortINI(const std::string& fileName)
 {
-    mINI::INIFile file(fileName);
+    mINI::INIFile file(GetNormalizedPath(fileName));
     mINI::INIStructure ini;
 
     file.read(ini);
@@ -486,7 +486,7 @@ void GlobalStoreXExtension::SaveShortINI(const std::string& fileName)
 
 void GlobalStoreXExtension::LoadShortINI(const std::string& fileName)
 {
-    mINI::INIFile file(fileName);
+    mINI::INIFile file(GetNormalizedPath(fileName));
     mINI::INIStructure ini;
     
     if (!file.read(ini)) return;
@@ -504,7 +504,7 @@ void GlobalStoreXExtension::LoadShortINI(const std::string& fileName)
 
 void GlobalStoreXExtension::SaveAllBinary(const std::string& fileName)
 {
-    BinaryWriter writer(fileName);
+    BinaryWriter writer(GetNormalizedPath(fileName));
 
     writer.WriteUint16(3); // type of file type. 0 - ints; 1 - strings; 2 - bools; 3 - all data; shorts - 4
 
@@ -541,9 +541,9 @@ void GlobalStoreXExtension::SaveAllBinary(const std::string& fileName)
 
 void GlobalStoreXExtension::LoadAllBinary(const std::string& fileName)
 {
-    if (!std::filesystem::exists(fileName)) return;
+    if (!std::filesystem::exists(GetNormalizedPath(fileName))) return;
 
-    BinaryReader reader(fileName);
+    BinaryReader reader(GetNormalizedPath(fileName));
 
     if (reader.ReadUint16() != 3) return;
 
@@ -582,7 +582,7 @@ void GlobalStoreXExtension::LoadAllBinary(const std::string& fileName)
 
 void GlobalStoreXExtension::SaveIntegerBinary(const std::string& fileName)
 {
-    BinaryWriter writer(fileName);
+    BinaryWriter writer(GetNormalizedPath(fileName));
 
     writer.WriteUint16(0);
     writer.WriteUint32(data.integerCount);
@@ -597,9 +597,9 @@ void GlobalStoreXExtension::SaveIntegerBinary(const std::string& fileName)
 
 void GlobalStoreXExtension::LoadIntegerBinary(const std::string& fileName)
 {
-    if (!std::filesystem::exists(fileName)) return;
+    if (!std::filesystem::exists(GetNormalizedPath(fileName))) return;
 
-    BinaryReader reader(fileName);
+    BinaryReader reader(GetNormalizedPath(fileName));
 
     if (reader.ReadUint16() != 0) return;
 
@@ -614,7 +614,7 @@ void GlobalStoreXExtension::LoadIntegerBinary(const std::string& fileName)
 
 void GlobalStoreXExtension::SaveStringBinary(const std::string& fileName)
 {
-    BinaryWriter writer(fileName);
+    BinaryWriter writer(GetNormalizedPath(fileName));
 
     writer.WriteUint16(1);
     writer.WriteUint32(data.stringCount);
@@ -629,9 +629,9 @@ void GlobalStoreXExtension::SaveStringBinary(const std::string& fileName)
 
 void GlobalStoreXExtension::LoadStringBinary(const std::string& fileName)
 {
-    if (!std::filesystem::exists(fileName)) return;
+    if (!std::filesystem::exists(GetNormalizedPath(fileName))) return;
 
-    BinaryReader reader(fileName);
+    BinaryReader reader(GetNormalizedPath(fileName));
 
     if (reader.ReadUint16() != 1) return;
 
@@ -646,7 +646,7 @@ void GlobalStoreXExtension::LoadStringBinary(const std::string& fileName)
 
 void GlobalStoreXExtension::SaveBoolBinary(const std::string& fileName)
 {
-    BinaryWriter writer(fileName);
+    BinaryWriter writer(GetNormalizedPath(fileName));
 
     writer.WriteUint16(2);
     writer.WriteUint32(data.boolCount);
@@ -661,9 +661,9 @@ void GlobalStoreXExtension::SaveBoolBinary(const std::string& fileName)
 
 void GlobalStoreXExtension::LoadBoolBinary(const std::string& fileName)
 {
-    if (!std::filesystem::exists(fileName)) return;
+    if (!std::filesystem::exists(GetNormalizedPath(fileName))) return;
 
-    BinaryReader reader(fileName);
+    BinaryReader reader(GetNormalizedPath(fileName));
 
     if (reader.ReadUint16() != 2) return;
 
@@ -678,7 +678,7 @@ void GlobalStoreXExtension::LoadBoolBinary(const std::string& fileName)
 
 void GlobalStoreXExtension::SaveShortBinary(const std::string& fileName)
 {
-    BinaryWriter writer(fileName);
+    BinaryWriter writer(GetNormalizedPath(fileName));
 
     writer.WriteUint16(4);
     writer.WriteUint32(data.shortCount);
@@ -693,9 +693,9 @@ void GlobalStoreXExtension::SaveShortBinary(const std::string& fileName)
 
 void GlobalStoreXExtension::LoadShortBinary(const std::string& fileName)
 {
-    if (!std::filesystem::exists(fileName)) return;
+    if (!std::filesystem::exists(GetNormalizedPath(fileName))) return;
 
-    BinaryReader reader(fileName);
+    BinaryReader reader(GetNormalizedPath(fileName));
 
     if (reader.ReadUint16() != 4) return;
 
@@ -706,4 +706,13 @@ void GlobalStoreXExtension::LoadShortBinary(const std::string& fileName)
     {
         data.shorts[i] = reader.ReadInt16();
     }
+}
+
+std::string GlobalStoreXExtension::GetNormalizedPath(const std::string& path)
+{
+#if defined(PLATFORM_WEB)
+    return "/disk/" + path;
+#else
+    return path;
+#endif
 }

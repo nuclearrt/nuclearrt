@@ -114,6 +114,7 @@ public:
 	void LoadShortBinary(const std::string& fileName);
 
 private:
+	static std::string GetNormalizedPath(const std::string& path);
 	static StoreData data;
 
 	static bool initialized;

@@ -22,7 +22,7 @@ public:
 	void Delay(unsigned int ms) override;
 
 	std::string GetPlatformName() override;
-	std::string GetAssetsFileName() override;
+	std::string GetAssetsDirectory() override;
 
 	bool IsWindowFocused() const { return windowFocused; }
 

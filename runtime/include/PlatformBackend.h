@@ -16,7 +16,7 @@ public:
 	virtual bool ShouldQuit() { return false; }
 
 	virtual std::string GetPlatformName() { return "Unknown"; }
-	virtual std::string GetAssetsFileName() { return ""; }
+	virtual std::string GetAssetsDirectory() { return ""; }
 
 	virtual unsigned int GetTicks() { return 0; }
 	virtual float GetTimeDelta() { return 0.0f; }

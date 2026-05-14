@@ -6,13 +6,13 @@ using CTFAK.Utils;
 
 public class PakBuilder
 {
-	private List<PakEntry> entries = [];
-
 	public void Build(CCNFileReader ccnReader, MFAFileReader mfaReader, DirectoryInfo outputPath)
 	{
 		//read the game data
 		var gameData = ccnReader.getGameData();
 		var mfaData = mfaReader.getMfaData();
+
+		PakFile mainPak = new PakFile();
 
 		//images
 		foreach (var image in gameData.Images.Items.Values)
@@ -22,7 +22,7 @@ public class PakBuilder
 			image.bitmap.Save(imageStream, System.Drawing.Imaging.ImageFormat.Png);
 			entry.Size = (uint)imageStream.Length;
 			entry.Data = imageStream.ToArray();
-			entries.Add(entry);
+			mainPak.AddEntry(entry);
 		}
 
 		//collision masks
@@ -32,7 +32,7 @@ public class PakBuilder
 			var entry = new PakEntry { Path = $"images/masks/{mask.Handle}.bin" };
 			entry.Size = (uint)mask.Data.Length;
 			entry.Data = mask.Data;
-			entries.Add(entry);
+			mainPak.AddEntry(entry);
 		}
 
 		//sounds
@@ -41,7 +41,7 @@ public class PakBuilder
 			var entry = new PakEntry { Path = $"sounds/{sound.Handle}.{GetAudioExtension(sound.Data[0..4])}" };
 			entry.Size = (uint)sound.Data.Length;
 			entry.Data = sound.Data;
-			entries.Add(entry);
+			mainPak.AddEntry(entry);
 		}
 
 		//fonts
@@ -77,39 +77,98 @@ public class PakBuilder
 					var entry = new PakEntry { Path = $"fonts/{fontFileName}" };
 					entry.Data = File.ReadAllBytes(Path.Combine(fontsFolder.FullName, fontFileName));
 					entry.Size = (uint)entry.Data.Length;
-					entries.Add(entry);
+					mainPak.AddEntry(entry);
 				}
 			}
 		}
 
-		//standard shaders
-		var shaderFolder = new DirectoryInfo(Path.Combine(outputPath.FullName, "shaders", "standard"));
-		if (shaderFolder.Exists)
+		Dictionary<Tuple<string, string>, PakFile> shaderVersions = new Dictionary<Tuple<string, string>, PakFile>() {
+			{ Tuple.Create("gles300", "web"), new PakFile() },
+			{ Tuple.Create("gl330", "desktop"), new PakFile() }
+		};
+		var baseShaderFolder = new DirectoryInfo(Path.Combine(outputPath.FullName, "shaders"));
+		if (baseShaderFolder.Exists)
 		{
-			foreach (var shaderFile in shaderFolder.GetFiles("*", SearchOption.AllDirectories))
+			foreach (var shaderVersion in shaderVersions.Keys)
 			{
-				var relativePath = Path.GetRelativePath(shaderFolder.FullName, shaderFile.FullName).Replace('\\', '/');
-				var entry = new PakEntry { Path = $"shaders/standard/{relativePath}" };
-				entry.Data = File.ReadAllBytes(shaderFile.FullName);
-				entry.Size = (uint)entry.Data.Length;
-				entries.Add(entry);
+				var shaderFolder = new DirectoryInfo(Path.Combine(outputPath.FullName, "shaders", shaderVersion.Item1, "standard"));
+				if (!shaderFolder.Exists) continue;
+				foreach (var shaderFile in shaderFolder.GetFiles("*", SearchOption.AllDirectories))
+				{
+					var relativePath = Path.GetRelativePath(shaderFolder.FullName, shaderFile.FullName).Replace('\\', '/');
+					var entry = new PakEntry { Path = $"shaders/standard/{relativePath}" };
+					entry.Data = File.ReadAllBytes(shaderFile.FullName);
+					entry.Size = (uint)entry.Data.Length;
+					shaderVersions[shaderVersion].AddEntry(entry);
+				}
 			}
 		}
 
-		//thirdparty shaders
-		var thirdPartyShaders = EffectBankExporter.thirdPartyShaders;
-		foreach (var shader in thirdPartyShaders)
+		foreach (var shaderVersion in shaderVersions.Keys)
 		{
-			var entry = new PakEntry { Path = $"shaders/thirdparty/{shader.Key}.frag" };
-			entry.Data = File.ReadAllBytes(shader.Value.FullName);
-			entry.Size = (uint)entry.Data.Length;
-			entries.Add(entry);
+			foreach (var hash in EffectBankExporter.thirdPartyShaderHashes)
+			{
+				var fragFile = EffectBankExporter.GetThirdPartyFrag(outputPath, shaderVersion.Item1, hash);
+				if (fragFile == null || !fragFile.Exists) continue;
+				
+				var entry = new PakEntry { Path = $"shaders/thirdparty/{hash}.frag" };
+				entry.Data = File.ReadAllBytes(fragFile.FullName);
+				entry.Size = (uint)entry.Data.Length;
+				shaderVersions[shaderVersion].AddEntry(entry);
+			}
 		}
+
 		Directory.Delete(Path.Combine(outputPath.FullName, "shaders"), true);
 
-		//clear any duplicates
-		entries = entries.DistinctBy(e => e.Path).ToList();
+		mainPak.Save(Path.Combine(outputPath.FullName, "copy", "all", "assets.pak"));
+		foreach (var kv in shaderVersions)
+		{
+			kv.Value.Save(Path.Combine(outputPath.FullName, "copy", kv.Key.Item2, $"shaders-{kv.Key.Item1}.pak"));
+		}
+	}
 
+	public static string GetAudioExtension(byte[] magic)
+	{
+		if (magic[0] == 0xFF && magic[1] == 0xFB ||
+			magic[0] == 0xFF && magic[1] == 0xF3 ||
+			magic[0] == 0xFF && magic[1] == 0xF2 ||
+			magic[0] == 0x49 && magic[1] == 0x44 && magic[2] == 0x33
+		)
+			return "mp3";
+
+		if (magic[0] == 0x52 && magic[1] == 0x49 && magic[2] == 0x46 && magic[3] == 0x46)
+			return "wav";
+
+		if (magic[0] == 0x4F && magic[1] == 0x67 && magic[2] == 0x67 && magic[3] == 0x53)
+			return "ogg";
+
+		return "wav";
+	}
+}
+
+public class PakEntry
+{
+	public string Path { get; set; }
+	public uint Offset { get; set; }
+	public uint Size { get; set; }
+	public byte[] Data { get; set; } = [];
+}
+
+public class PakFile
+{
+	private List<PakEntry> entries = [];
+
+	public void AddEntry(PakEntry entry)
+	{
+		entries.Add(entry);
+	}
+
+	public void Save(string path)
+	{
+		Directory.CreateDirectory(Path.GetDirectoryName(path));
+
+		entries = entries.Distinct().ToList();
+		
 		//calculate offsets
 		uint dataOffset = 12; // header size
 		foreach (var entry in entries)
@@ -119,7 +178,7 @@ public class PakBuilder
 		}
 
 		//create quake pak file
-		using var pak = File.Create(outputPath + "/copy/assets.pak");
+		using var pak = File.Create(path);
 		using var writer = new ByteWriter(pak);
 
 		//write header
@@ -149,30 +208,4 @@ public class PakBuilder
 		pak.Flush();
 		pak.Close();
 	}
-
-	public static string GetAudioExtension(byte[] magic)
-	{
-		if (magic[0] == 0xFF && magic[1] == 0xFB ||
-			magic[0] == 0xFF && magic[1] == 0xF3 ||
-			magic[0] == 0xFF && magic[1] == 0xF2 ||
-			magic[0] == 0x49 && magic[1] == 0x44 && magic[2] == 0x33
-		)
-			return "mp3";
-
-		if (magic[0] == 0x52 && magic[1] == 0x49 && magic[2] == 0x46 && magic[3] == 0x46)
-			return "wav";
-
-		if (magic[0] == 0x4F && magic[1] == 0x67 && magic[2] == 0x67 && magic[3] == 0x53)
-			return "ogg";
-
-		return "wav";
-	}
-}
-
-public class PakEntry
-{
-	public string Path { get; set; }
-	public uint Offset { get; set; }
-	public uint Size { get; set; }
-	public byte[] Data { get; set; } = [];
 }
