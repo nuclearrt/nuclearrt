@@ -109,7 +109,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 # Dear ImGui setup
-if(NOT EMSCRIPTEN AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(NOT EMSCRIPTEN)
     set(IMGUI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui")
     set(IMGUI_SOURCES
         ${IMGUI_PATH}/imgui.cpp
