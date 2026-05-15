@@ -115,11 +115,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
 endif()
 
 # Create a toggleable option in CMake settings
-option(NUCLEAR_DEBUG_UI "Enable the Debug UI" ${DEBUG_UI_DEFAULT})
+option(NUCLEAR_DEBUG_UI "Enable the Debug UI (ignored in Debug)" ${DEBUG_UI_DEFAULT})
 
 if(NUCLEAR_DEBUG_UI)
     add_compile_definitions(NUCLEAR_DEBUG_UI)
 endif()
+
+# Force it on in Debug regardless of the option above (due to MSVC where CMAKE_BUILD_TYPE is never set)
+add_compile_definitions($<$<CONFIG:Debug>:NUCLEAR_DEBUG_UI>)
 
 
 # Dear ImGui setup
