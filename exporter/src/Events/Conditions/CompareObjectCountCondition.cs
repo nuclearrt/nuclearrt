@@ -9,6 +9,6 @@ public class CompareObjectCountCondition : ConditionBase
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")
 	{
-		return $"{ifStatement} {ExpressionConverter.GetSelector(eventBase.ObjectInfo)}->Size() {ExpressionConverter.GetComparisonSymbol(((ExpressionParameter)eventBase.Items[0].Loader).Comparsion)} {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)}) goto {nextLabel};";
+		return $"{ifStatement} ({ExpressionConverter.GetSelector(eventBase.ObjectInfo)}->Size() {ExpressionConverter.GetComparisonSymbol(((ExpressionParameter)eventBase.Items[0].Loader).Comparsion)} {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)})) goto {nextLabel};";
 	}
 }
