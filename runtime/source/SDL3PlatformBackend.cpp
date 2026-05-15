@@ -12,9 +12,25 @@
 #include <imgui_impl_sdl3.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/console.h>
+#include <emscripten.h>
+#endif
+
 void SDL3PlatformBackend::Initialize()
 {
-	if (!pakFile.Load(GetAssetsFileName())) {
+	//init persistent storage for web
+#if defined(PLATFORM_WEB)
+EM_ASM(
+	FS.mkdir('/disk');
+	FS.mount(IDBFS, {autoPersist: true}, '/disk');
+
+	FS.syncfs(true, function (err) {
+	});
+);
+#endif
+
+	if (!pakFile.Load(GetAssetsDirectory())) {
 		Log("PakFile::Load Error: Failed to load assets file");
 		return;
 	}
@@ -83,15 +99,23 @@ std::string SDL3PlatformBackend::GetPlatformName()
 	return "macOS";
 #elif defined(PLATFORM_LINUX)
 	return "Linux";
+#elif defined(PLATFORM_WEB)
+	return "Web";
 #else
 	return "Unknown";
 #endif
 }
 
-std::string SDL3PlatformBackend::GetAssetsFileName()
+std::string SDL3PlatformBackend::GetAssetsDirectory()
 {
-	const char* basePath = SDL_GetBasePath();
-	return std::string(basePath) + "assets.pak";
+	return std::string(SDL_GetBasePath());
 }
-void SDL3PlatformBackend::Log(std::string text) {SDL_Log(text.c_str());}
+
+void SDL3PlatformBackend::Log(std::string text) {
+	#ifdef __EMSCRIPTEN__
+	emscripten_console_log(text.c_str());
+	#else
+	SDL_Log(text.c_str());
+	#endif
+}
 #endif

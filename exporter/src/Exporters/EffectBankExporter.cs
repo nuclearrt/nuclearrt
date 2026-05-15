@@ -7,7 +7,7 @@ public class EffectBankExporter : BaseExporter
 {
 	public EffectBankExporter(Exporter exporter) : base(exporter) { }
 
-	public static Dictionary<string, FileInfo> thirdPartyShaders = [];
+	public static HashSet<string> thirdPartyShaderHashes = [];
 
 	public override void Export()
 	{
@@ -26,7 +26,7 @@ public class EffectBankExporter : BaseExporter
 			effectFunctions.Append(BuildEffectFunction(shader, i));
 		}
 
-		thirdPartyShaders = GetAllUsedThirdPartyShaders(RuntimeBasePath);
+		thirdPartyShaderHashes = GetThirdPartyShaderHashes(RuntimeBasePath);
 
 		var effectBankListPath = Path.Combine(RuntimeBasePath.FullName, "source", "EffectBank.template.cpp");
 		var effectBankList = File.ReadAllText(effectBankListPath);
@@ -73,44 +73,37 @@ public class EffectBankExporter : BaseExporter
 
 	public static bool EffectExists(Shader shader, DirectoryInfo runtimeBasePath)
 	{
-		var shaderFolder = Path.Combine(runtimeBasePath.FullName, "shaders", "thirdparty");
-		if (!Directory.Exists(shaderFolder)) return false;
-		foreach (var folder in Directory.GetDirectories(shaderFolder))
-		{
-			if (Path.GetFileName(folder).Contains($"({GetEffectHash(shader)})")) return true;
-		}
-		return false;
+		var hash = GetEffectHash(shader);
+		return GetThirdPartyFrag(runtimeBasePath, "gles300", hash) != null || GetThirdPartyFrag(runtimeBasePath, "gl330", hash) != null;
 	}
 
-	public Dictionary<string, FileInfo> GetAllUsedThirdPartyShaders(DirectoryInfo runtimeBasePath)
+	public HashSet<string> GetThirdPartyShaderHashes(DirectoryInfo runtimeBasePath)
 	{
-		Dictionary<string, FileInfo> shaders = [];
-		var shaderFolder = Path.Combine(runtimeBasePath.FullName, "shaders", "thirdparty");
-		if (!Directory.Exists(shaderFolder)) return [];
+		HashSet<string> hashes = [];
 		for (int i = 0; i < (GameData.shaders.ShaderList?.Count ?? 0); i++)
 		{
 			var shader = GameData.shaders.ShaderList.ElementAt(i).Value;
-			string shaderHash = GetEffectHash(shader);
-			foreach (var folder in Directory.GetDirectories(shaderFolder))
+			if (EffectExists(shader, runtimeBasePath))
+				hashes.Add(GetEffectHash(shader));
+		}
+		return hashes;
+	}
+
+	public static FileInfo? GetThirdPartyFrag(DirectoryInfo root, string apiVersion, string shaderHash)
+	{
+		var specializedRoot = Path.Combine(root.FullName, "shaders", apiVersion, "thirdparty");
+		if (!Directory.Exists(specializedRoot))
+			return null;
+		foreach (var folder in Directory.GetDirectories(specializedRoot))
+		{
+			if (!Path.GetFileName(folder).Contains($"({shaderHash})", StringComparison.Ordinal))
+				continue;
+			foreach (var file in Directory.GetFiles(folder))
 			{
-				if (Path.GetFileName(folder).Contains($"({shaderHash})"))
-				{
-					foreach (var file in Directory.GetFiles(folder))
-					{
-						//get first frag shader
-						if (Path.GetFileName(file).Contains(".frag"))
-						{
-							shaders.Add(shaderHash, new FileInfo(file));
-							break;
-						}
-						else
-						{
-							Logger.Log($"Unknown file in shader folder: {file}");
-						}
-					}
-				}
+				if (Path.GetFileName(file).Contains(".frag", StringComparison.OrdinalIgnoreCase))
+					return new FileInfo(file);
 			}
 		}
-		return shaders;
+		return null;
 	}
 }

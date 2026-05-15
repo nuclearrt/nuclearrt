@@ -56,7 +56,7 @@ void SDL3GraphicsBackend::Initialize() {
 	SDL_GL_SetSwapInterval(1);
 
 	
-	#if !defined(PLATFORM_MACOS)
+	#if !defined(PLATFORM_MACOS) && !defined(PLATFORM_WEB)
 	GLenum glewErr = glewInit();
 	if (glewErr != GLEW_OK) {
 		std::string errorStr = reinterpret_cast<const char*>(glewGetErrorString(glewErr));
@@ -102,7 +102,7 @@ void SDL3GraphicsBackend::Initialize() {
 	
 	DEBUG_UI.AddWindow(Application::Instance().GetAppData()->GetAppName(), [this]() {
 		ImGui::Text("Platform: %s", backend->platform ? backend->platform->GetPlatformName().c_str() : "");
-		ImGui::Text("Assets File: %s", backend->platform ? backend->platform->GetAssetsFileName().c_str() : "");
+		ImGui::Text("Assets directory: %s", backend->platform ? backend->platform->GetAssetsDirectory().c_str() : "");
 
 		if (ImGui::CollapsingHeader("Window")) {
 			ImGui::Checkbox("Fit Inside", &Application::Instance().GetAppData()->GetFitInside());
@@ -1061,7 +1061,7 @@ void SDL3GraphicsBackend::DrawBitmap(Bitmap& bitmap, int x, int y)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.GetWidth(), bitmap.GetHeight(), 0, GL_BGRA, GL_UNSIGNED_BYTE, bitmap.GetData());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.GetWidth(), bitmap.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap.GetData());
 
 	UseEffectShader(0);
 	EffectShader& shader = effectShaders[0];
@@ -1072,6 +1072,8 @@ void SDL3GraphicsBackend::DrawBitmap(Bitmap& bitmap, int x, int y)
 
 	RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(bitmap.GetWidth()), static_cast<float>(bitmap.GetHeight()), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
 	glDeleteTextures(1, &tempTexture);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void SDL3GraphicsBackend::DrawEffectRect(int x, int y, int width, int height, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance)

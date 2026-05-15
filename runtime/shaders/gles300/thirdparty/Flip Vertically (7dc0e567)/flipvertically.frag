@@ -1,0 +1,14 @@
+#version 300 es
+precision highp float;
+
+in vec2 TexCoord;
+out vec4 FragColor;
+
+uniform sampler2D uTexture;
+uniform vec4 uColor;
+
+void main() {
+    vec4 texColor = texture(uTexture, vec2(TexCoord.x, 1.0 - TexCoord.y));
+    if (texColor.a < 0.01) discard;
+    FragColor = texColor * uColor;
+}

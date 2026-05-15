@@ -25,7 +25,7 @@ if (EMSCRIPTEN)
     set(SDLTTF_PLUTOSVG OFF CACHE BOOL "" FORCE)
     set(SDLTTF_INSTALL OFF CACHE BOOL "" FORCE)
 
-    add_link_options(-sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=2gb -sMAXIMUM_MEMORY=4096Mb -sOFFSCREENCANVAS_SUPPORT=1 -sFORCE_FILESYSTEM=1 -sWASMFS=1 -sEXIT_RUNTIME=1)
+    add_link_options(-sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=2gb -sMAXIMUM_MEMORY=4096Mb -sSTACK_SIZE=1048576 -sOFFSCREENCANVAS_SUPPORT=1 -sFORCE_FILESYSTEM=1 -sEXIT_RUNTIME=1 -sASYNCIFY -lidbfs.js)
 endif()
 
 include(FetchContent)
@@ -44,7 +44,7 @@ endfunction()
 find_package(SDL3 QUIET)
 if (NOT SDL3_FOUND)
     message(STATUS "Getting SDL3 from Github")
-    include_dependency(SDL3 https://github.com/libsdl-org/SDL.git release-3.4.0)
+    include_dependency(SDL3 https://github.com/libsdl-org/SDL.git release-3.4.8)
 else()
     message(STATUS "Using local SDL3")
 endif()
@@ -59,7 +59,7 @@ set(SDLIMAGE_TIF OFF)
 find_package(SDL3_image QUIET)
 if (NOT SDL3_image_FOUND)
     message(STATUS "Getting SDL3_image from Github")
-    include_dependency(SDL3_image https://github.com/libsdl-org/SDL_image.git release-3.2.6)
+    include_dependency(SDL3_image https://github.com/libsdl-org/SDL_image.git release-3.4.4)
 else()
     message(STATUS "Using local SDL3_image")
 endif()
@@ -126,7 +126,7 @@ add_compile_definitions($<$<CONFIG:Debug>:NUCLEAR_DEBUG_UI>)
 
 
 # Dear ImGui setup
-if(NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(IMGUI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui")
     set(IMGUI_SOURCES
         ${IMGUI_PATH}/imgui.cpp
@@ -194,7 +194,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 # Set output directory
 if(EMSCRIPTEN)
     set_target_properties(${PROJECT_NAME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/web"
+    OUTPUT_NAME "index"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/output"
     SUFFIX ".html"
 )
 elseif(APPLE AND NOT EMSCRIPTEN)
@@ -208,9 +209,16 @@ else()
     )
 endif()
 
-# Copy directory setup
-set(COPY_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/copy")
-set(ASSETS_SOURCE_FILE "${COPY_SOURCE_DIR}/assets.pak")
+set(COPY_SOURCE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/copy/all")
+if(EMSCRIPTEN)
+    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/copy/web")
+        list(APPEND COPY_SOURCE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/copy/web")
+    endif()
+elseif(WIN32 OR APPLE OR UNIX)
+    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/copy/desktop")
+        list(APPEND COPY_SOURCE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/copy/desktop")
+    endif()
+endif()
 
 # Set output destination based on platform
 if(APPLE AND NOT EMSCRIPTEN)
@@ -221,15 +229,24 @@ else()
     set(COPY_DEST_DIR "${CMAKE_BINARY_DIR}/bin")
 endif()
 
+set(copy_dirs_commands "")
+foreach(source_dir IN LISTS COPY_SOURCE_DIRS)
+    list(APPEND copy_dirs_commands
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${source_dir}" "${COPY_DEST_DIR}")
+endforeach()
+
 if(NOT EMSCRIPTEN)
     add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${COPY_SOURCE_DIR} ${COPY_DEST_DIR}
+        ${copy_dirs_commands}
         COMMENT "Copying files from copy directory to build output"
     )
 else()
-    target_link_options(${PROJECT_NAME} PRIVATE --embed-file ${ASSETS_SOURCE_FILE}@assets.pak)
+    foreach(source_dir IN LISTS COPY_SOURCE_DIRS)
+        target_link_options(${PROJECT_NAME} PRIVATE "SHELL:--embed-file \"${source_dir}@/\"")
+    endforeach()
+
+    target_link_options(${PROJECT_NAME} PRIVATE "SHELL:--shell-file \"${CMAKE_CURRENT_SOURCE_DIR}/web_shell.html\"")
 endif()
 
 #copy SDL3 dlls

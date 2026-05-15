@@ -76,7 +76,7 @@ public:
 		}
 		return 0;
 	}
-	void SetSamplePos(int pos, int id, bool channel);
+	void SetSamplePos(int pos, int id, bool channel) override;
 	void StopSample(int id, bool channel) override;
 	
 
