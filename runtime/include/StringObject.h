@@ -6,6 +6,7 @@
 #include "ObjectGlobalDataString.h"
 #include "Paragraph.h"
 #include "Shape.h"
+#include "ObjectSelector.h"
 
 class StringObject : public ObjectInstance {
 public:
@@ -22,17 +23,31 @@ public:
 
 	int CurrentParagraph = 0;
 	std::string AlterableText;
-
+	
 	std::string GetText()
 	{
-		if (CurrentParagraph == -1)
+		return GetTextOfParagraph(CurrentParagraph);
+	}
+
+	std::string GetTextOfParagraph(int paragraph)
+	{
+		if (paragraph == -1)
 		{
 			return AlterableText;
 		}
 		else
 		{
-			return Paragraphs[CurrentParagraph].Text;
+			return Paragraphs[paragraph].Text;
 		}
+	}
+
+	static std::string GetTextOfParagraph(ObjectSelector* selector, int paragraph)
+	{
+		if (selector && selector->Count() > 0)
+		{
+			return ((StringObject*)*selector->begin())->GetTextOfParagraph(paragraph);
+		}
+		return ""; // default value
 	}
 
 	unsigned short GetFont()
@@ -72,6 +87,11 @@ public:
 		}
 	}
 
+	int GetNumberOfCurrentParagraph()
+	{
+		return CurrentParagraph;
+	}
+
 	void SetPreviousParagraph()
 	{
 		if (CurrentParagraph == -1)
@@ -104,6 +124,11 @@ public:
 	{
 		AlterableText = alterableText;
 		CurrentParagraph = -1;
+	}
+
+	int GetParagraphCount()
+	{
+		return static_cast<int>(Paragraphs.size());
 	}
 
 	std::vector<unsigned int> GetFontsUsed() override {

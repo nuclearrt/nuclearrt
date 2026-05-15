@@ -89,7 +89,7 @@ public:
 	std::vector<unsigned int> GetImagesUsed();
 	std::vector<unsigned int> GetFontsUsed();
 
-	ObjectInstance* CreateInstance(ObjectInstance* createdInstance, short x, short y, unsigned int layer, short instanceValue, unsigned int objectInfoHandle, short angle, ObjectInstance* parentInstance = nullptr);
+	ObjectInstance* CreateInstance(ObjectInstance* createdInstance, short x, short y, unsigned int layer, short instanceValue, unsigned int objectInfoHandle, short angle, bool postInitialize = false, ObjectInstance* parentInstance = nullptr);
 
 	std::vector<ObjectGlobalData*> GetGlobalObjectData();
 	void ApplyGlobalObjectData(std::vector<ObjectGlobalData*> globalData);
@@ -103,18 +103,75 @@ public:
 	int GetMouseX();
 	int GetMouseY();
 
-	int StringLength(std::string str) {
+	int GetRGB(int red, int green, int blue) {
+		return 0xFF000000 | (red << 16) | (green << 8) | blue;
+	}
+
+	inline int StringLength(std::string str) {
 		return (int)str.length();
 	}
 
-	std::string StringLeft(std::string str, int length) {
+	inline std::string StringLeft(std::string str, int length) {
 		return str.substr(0, length);
 	}
 
-	std::string StringRight(std::string str, int length) {
+	inline std::string StringRight(std::string str, int length) {
 		return str.substr(str.length() - length);
 	}
 
+    inline std::string Hex(int v) {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%X", v);
+        return std::string(buf);
+    }
+
+    inline std::string Bin(int v) {
+        std::string r;
+        for (int i = 31; i >= 0; i--) {
+            if (v & (1 << i)) r += '1';
+            else if (!r.empty()) r += '0';
+        }
+        return r.empty() ? "0" : r;
+    }
+
+    inline std::string Mid(const std::string& str, int start, int length) {
+        if (start < 0) start = 0;
+        if (start >= (int)str.length()) return "";
+        return str.substr(start, length);
+    }
+
+    inline std::string Lower(std::string str) {
+        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+        return str;
+    }
+
+    inline std::string Upper(std::string str) {
+        std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+        return str;
+    }
+
+    inline int Find(const std::string& str, const std::string& find, int start) {
+        if (start < 0) start = 0;
+        auto pos = str.find(find, start);
+        return (pos == std::string::npos) ? -1 : (int)pos;
+    }
+
+    inline int ReverseFind(const std::string& str, const std::string& find, int start) {
+        auto pos = str.rfind(find, (start < 0 || start >= str.length()) ? std::string::npos : start);
+        return (pos == std::string::npos) ? -1 : (int)pos;
+    }
+
+    inline std::string ReplaceString(std::string str, const std::string& find, const std::string& replace) {
+        if (find.empty()) return str;
+        size_t pos = 0;
+        while ((pos = str.find(find, pos)) != std::string::npos) {
+            str.replace(pos, find.length(), replace);
+            pos += replace.length();
+        }
+        return str;
+    }
+
+    inline std::string NewLine() { return "\n"; }
 	int OAngle(ObjectInstance* instance, int xTarget, int yTarget) {
 		int distanceX  = xTarget - instance->X;
 		int distanceY  = yTarget - instance->Y;
@@ -141,6 +198,41 @@ public:
 			return 0;
 		}
 		return ODistance(*(selector->begin()), xTarget, yTarget);
+	}
+
+	int GetAlterableValueByIndex(ObjectInstance* instance, int index) {
+		if (instance->Type == 2) {
+			return static_cast<Active*>(instance)->Values.GetValue(index);
+		}
+		else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) {
+			return  static_cast<CounterBase*>(instance)->Values.GetValue(index);
+		}
+
+		return 0;
+	}
+
+	int GetAlterableValueByIndex(std::shared_ptr<ObjectSelector> selector, int index) {
+		if (!selector || selector->Count() == 0) {
+			return 0;
+		}
+		return GetAlterableValueByIndex(*(selector->begin()), index);
+	}
+
+	int GetAlterableFlagValue(ObjectInstance* instance, int index) {
+		if (instance->Type == 2) {
+			return static_cast<Active*>(instance)->Flags.GetFlagValue(index);
+		}
+		else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) {
+			return  static_cast<CounterBase*>(instance)->Flags.GetFlagValue(index);
+		}
+		return 0;
+	}
+
+	int GetAlterableFlagValue(std::shared_ptr<ObjectSelector> selector, int index) {
+		if (!selector || selector->Count() == 0) {
+			return 0;
+		}
+		return GetAlterableFlagValue(*(selector->begin()), index);
 	}
 
 	struct LoopState {

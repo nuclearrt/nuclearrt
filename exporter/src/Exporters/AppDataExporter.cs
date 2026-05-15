@@ -78,7 +78,9 @@ public class AppDataExporter : BaseExporter
 		controlsTypes.Append("{ ");
 		foreach (var control in GameData.header.Controls.Items)
 		{
-			controlsTypes.Append($"{control.ControlType}, ");
+			int type = control.ControlType;
+			if (type == 5) type = 0;
+			controlsTypes.Append($"{type}, ");
 		}
 		controlsTypes.Append("}");
 		return controlsTypes.ToString();

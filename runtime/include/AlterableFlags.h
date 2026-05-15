@@ -24,6 +24,12 @@ public:
 			return false;
 		return Flags[index];
 	}
+
+	int GetFlagValue(int index) const {
+		if (index < 0 || index >= Flags.size())
+			return 0;
+		return Flags[index] ? 1 : 0;
+	}
 private:
 	std::vector<bool> Flags;
 };

@@ -14,7 +14,8 @@ public static class ExtensionExporterRegistry
 		new ButtonObjectExporter(),
 		new IniExporter(),
 		new LayerObjectExporter(),
-		new GlobalStoreXExporter()
+		new GlobalStoreXExporter(),
+		new PerspectiveExporter()
 	};
 
 	public static ExtensionExporter GetExporter(string extensionName)
@@ -22,14 +23,14 @@ public static class ExtensionExporterRegistry
 		return exporters.Find(e => e.CanHandle(extensionName));
 	}
 
-	public static ExtensionExporter GetExporterByObjectInfo(int objectInfo, int frameIndex)
+	public static ExtensionExporter? GetExporterByObjectInfo(int objectInfo, int frameIndex)
 	{
 		//get the object info from the frame
 		var oi = ExpressionConverter.GetObject(objectInfo, false, frameIndex);
 
 		//get identifier from ccn
-		ObjectInfo obj = Exporter.Instance.GameData.frameitems[oi.Item1];
-		if (obj.properties is ObjectCommon common)
+		ObjectInfo? obj = Exporter.Instance.GameData.frameitems.GetValueOrDefault(oi.Item1);
+		if (obj != null && obj.properties is ObjectCommon common)
 		{
 			return GetExporter(common.Identifier);
 		}

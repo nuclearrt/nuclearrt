@@ -5,4 +5,10 @@ namespace MathHelper {
         static SafeDivision instance;
         return instance;
     }
+    
+    const Power& GetPower() {
+        static Power p;
+        return p;
+    }
 }
+

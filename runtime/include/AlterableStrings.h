@@ -12,7 +12,7 @@ public:
 	void SetString(int index, const std::string& value) {
 		// Resize the vector if needed
 		if (index >= Values.size())
-			Values.resize(index + 1, 0);
+			Values.resize(index + 1);
 		Values[index] = value;
 	}
 

@@ -1,5 +1,6 @@
 #include "ButtonObjectExtension.h"
 #include "Application.h"
+#include "GraphicsBackend.h"
 
 void ButtonObjectExtension::Initialize() {
 	if (Flags & 1) {
@@ -9,6 +10,8 @@ void ButtonObjectExtension::Initialize() {
 	if (Flags & 2) {
 		Enabled = false;
 	}
+
+	bitmap.Resize(Width, Height);
 }
 
 void ButtonObjectExtension::Update(float deltaTime) {
@@ -35,7 +38,7 @@ void ButtonObjectExtension::Update(float deltaTime) {
 void ButtonObjectExtension::Draw() {
 	if (!Shown) return;
 
-	Application::Instance().GetBackend()->DrawRectangle(X, Y, Width, Height, 0xFFFFFFFF);
+	bitmap.Clear(0xFFFFFFFF);
 
 	switch (ButtonType) {
 		case 0: // button
@@ -50,74 +53,74 @@ void ButtonObjectExtension::Draw() {
 			RadioButtonDraw();
 			break;
 	}
+
+	Application::Instance().GetBackend()->graphics->DrawBitmap(bitmap, X, Y);
 }
 
 void ButtonObjectExtension::ButtonDraw() {
-	int borderColor = 0xADADAD;
-	int fillColor = 0xE1E1E1;
+	int borderColor = 0xFFADADAD;
+	int fillColor = 0xFFE1E1E1;
 
 	if (!Enabled) {
-		fillColor = 0xCCCCCC;
-		borderColor = 0xBFBFBF;
+		fillColor = 0xFFCCCCCC;
+		borderColor = 0xFFBFBFBF;
 	}
 	else if (HeldDown) {
-		fillColor = 0xCCE4F7;
-		borderColor = 0x005499;
+		fillColor = 0xFFCCE4F7;
+		borderColor = 0xFF005499;
 	} else if (Hovered) {
-		fillColor = 0xE5F1FB;
-		borderColor = 0x0078D7;
+		fillColor = 0xFFE5F1FB;
+		borderColor = 0xFF0078D7;
 	}
 
-	Application::Instance().GetBackend()->DrawRectangle(X + 1, Y + 1, Width - 2, Height - 2, fillColor);
-	Application::Instance().GetBackend()->DrawRectangleLines(X + 1, Y + 1, Width - 2, Height - 2, borderColor);
+	bitmap.DrawRectangle(1, 1, Width - 2, Height - 2, fillColor);
+	bitmap.DrawRectangleLines(1, 1, Width - 2, Height - 2, borderColor);
 }
 
 void ButtonObjectExtension::CheckboxDraw() {
-	int boxX = X;
-	int boxY = Y;
+	int boxX = 0;
 
-	int borderColor = 0x626262;
-	int fillColor = 0xFFFFFF;
+	int borderColor = 0xFF626262;
+	int fillColor = 0xFFFFFFFF;
 
 	if (!Enabled) {
-		fillColor = 0xF9F9F9;
-		borderColor = 0xC3C3C3;
+		fillColor = 0xFFF9F9F9;
+		borderColor = 0xFFC3C3C3;
 	}
 	else if (Checked) {
-		fillColor = 0x005FB8;
-		borderColor = 0x005FB8;
+		fillColor = 0xFF005FB8;
+		borderColor = 0xFF005FB8;
 	}
 
 	if (Flags & 4) {
-		boxX = X + Width - 12;
+		boxX = Width - 12;
 	}
 
-	Application::Instance().GetBackend()->DrawRectangle(boxX, boxY + Height - 18, 12, 12, fillColor);
-	Application::Instance().GetBackend()->DrawRectangleLines(boxX, boxY + Height - 18, 12, 12, borderColor);
+	bitmap.DrawRectangle(boxX, Height - 18, 12, 12, fillColor);
+	bitmap.DrawRectangleLines(boxX, Height - 18, 12, 12, borderColor);
 }
 
 void ButtonObjectExtension::RadioButtonDraw() {
-	int radioX = X;
-	int radioY = Y;
+	int radioX = 0;
 
-	int borderColor = 0x626262;
-	int fillColor = 0xFFFFFF;
+	int borderColor = 0xFF626262;
+	int fillColor = 0xFFFFFFFF;
 
 	if (!Enabled) {
-		fillColor = 0xF9F9F9;
-		borderColor = 0xC3C3C3;
+		fillColor = 0xFFF9F9F9;
+		borderColor = 0xFFC3C3C3;
 	}
 	else if (Checked) {
-		fillColor = 0x005FB8;
-		borderColor = 0x005FB8;
+		fillColor = 0xFF005FB8;
+		borderColor = 0xFF005FB8;
 	}
 
 	if (Flags & 4) {
-		radioX = X + Width - 12;
+		radioX = Width - 12;
 	}
 
-	Application::Instance().GetBackend()->DrawRectangle(radioX, radioY + Height - 18, 12, 12, fillColor);
-	Application::Instance().GetBackend()->DrawRectangleLines(radioX, radioY + Height - 18, 12, 12, borderColor);
+	bitmap.DrawRectangle(radioX, Height - 18, 12, 12, fillColor);
+	bitmap.DrawRectangleLines(radioX, Height - 18, 12, 12, borderColor);
 }
 
 bool ButtonObjectExtension::IsClicked() const {

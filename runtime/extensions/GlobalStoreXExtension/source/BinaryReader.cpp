@@ -9,13 +9,13 @@ BinaryReader::BinaryReader(std::string_view inputPath)
 BinaryReader::BinaryReader(char* buffer, uint32_t sizeInBytes)
 {
     buffer_ = new basic_memstreambuf(buffer, sizeInBytes);
-    stream_ = new std::istream(buffer_, false);
+    stream_ = new std::istream(buffer_);
 }
 
 BinaryReader::BinaryReader(Span<uint8_t> buffer)
 {
     buffer_ = new basic_memstreambuf((char*)buffer.Data(), buffer.Size());
-    stream_ = new std::istream(buffer_, false);
+    stream_ = new std::istream(buffer_);
 }
 
 BinaryReader::~BinaryReader()

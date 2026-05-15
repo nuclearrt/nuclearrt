@@ -35,26 +35,26 @@ public class LayerObjectExporter : ExtensionExporter
 
 		switch (actionNum)
 		{
-			case 92:
+			case 12:
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->XSort(false);");
 				break;
-			case 93:
+			case 13:
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->YSort(false);");
 				break;
-			case 94:
+			case 14:
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->XSort();");
 				break;
-			case 95:
+			case 15:
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->YSort();");
 				break;
-			case 106:
+			case 26:
 				{
 					int altIndex = ((AlterableValue)eventBase.Items[0].Loader).Value;
 					string defaultValue = ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase);
 					result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo)}->AltValueSort(false, {altIndex}, {defaultValue});");
 				}
 				break;
-			case 107:
+			case 27:
 				{
 					int altIndex = ((AlterableValue)eventBase.Items[0].Loader).Value;
 					string defaultValue = ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase);

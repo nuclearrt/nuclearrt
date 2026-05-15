@@ -10,6 +10,13 @@ public class EventProcessor
 {
 	private readonly Exporter _exporter;
 
+	public enum EventLoopType
+	{
+		Animation,
+		Timer,
+		Normal,
+	}
+
 	public EventProcessor(Exporter exporter)
 	{
 		_exporter = exporter;
@@ -27,7 +34,7 @@ public class EventProcessor
 		return false;
 	}
 
-	public string BuildEventUpdateLoop(int frameIndex, bool isTimerUpdateLoop = false)
+	public string BuildEventUpdateLoop(int frameIndex, EventLoopType eventLoopType)
 	{
 		var result = new StringBuilder();
 
@@ -58,7 +65,23 @@ public class EventProcessor
 			}
 
 			//only add event to normal event loop if it doesn't have a loop condition
-			if (DoesEventHaveLoop(evt) == null && IsTimerEvent(evt) == isTimerUpdateLoop) result.Append($"{eventName}();\n");
+			if (DoesEventHaveLoop(evt) == null)
+			{
+				if (eventLoopType == EventLoopType.Timer)
+				{
+					if (!IsTimerEvent(evt)) continue;
+				}
+				else if (eventLoopType == EventLoopType.Animation)
+				{
+					if (!IsAnimationEvent(evt)) continue;
+				}
+				else if (eventLoopType == EventLoopType.Normal)
+				{
+					if (IsTimerEvent(evt) || IsAnimationEvent(evt)) continue;
+				}
+				
+				result.Append($"{eventName}();\n");
+			}
 		}
 		return result.ToString();
 	}
@@ -102,10 +125,10 @@ public class EventProcessor
 				var acBaseType = acBaseTypes.FirstOrDefault(t =>
 				{
 					var instance = Activator.CreateInstance(t) as ConditionBase;
-					return instance?.ObjectType == condition.ObjectType && instance?.Num == condition.Num;
+					return (instance?.ObjectType == condition.ObjectType || condition.ObjectType >= 32 && instance?.ObjectType >= 32) && instance?.Num == condition.Num;
 				});
 
-				if (condition.ObjectType >= 32)
+				if (acBaseType == null && condition.ObjectType >= 32)
 				{
 					acBaseType = typeof(ExtensionConditionBase);
 				}
@@ -156,10 +179,10 @@ public class EventProcessor
 				var acBaseType = acBaseTypes.FirstOrDefault(t =>
 				{
 					var instance = Activator.CreateInstance(t) as ActionBase;
-					return instance?.ObjectType == action.ObjectType && instance?.Num == action.Num;
+					return (instance?.ObjectType == action.ObjectType || action.ObjectType >= 32 && instance?.ObjectType >= 32) && instance?.Num == action.Num;
 				});
 
-				if (action.ObjectType >= 32)
+				if (acBaseType == null && action.ObjectType >= 32)
 				{
 					acBaseType = typeof(ExtensionActionBase);
 				}
@@ -203,6 +226,7 @@ public class EventProcessor
 			for (int j = 0; j < _exporter.MfaData.Frames[frameIndex].Events.Items.Count; j++)
 			{
 				var evt = _exporter.MfaData.Frames[frameIndex].Events.Items[j];
+				if (ShouldSkipEvent(evt)) continue;
 
 				foreach (var condition in evt.Conditions)
 				{
@@ -309,7 +333,18 @@ public class EventProcessor
 					if (systemQualifier != 0 ||
 					(objectName == "Group.Player" && systemQualifier == 0 && evtObj.InstanceHandle == 0)) // temp fix since system qualifier returns 0 for the player group
 					{
-						relevantObjectInfos.Add(new Tuple<int, string>(short.MaxValue + systemQualifier + 1, Utilities.GetQualifierName(systemQualifier, objectType - 1)));
+						string qualifierName;
+						Quailifer? ccnQualifier = Utilities.FindFrameQualifier(frameIndex, objectInfo, systemQualifier);
+						if (ccnQualifier != null)
+						{
+							qualifierName = Utilities.GetQualifierName(ccnQualifier.Qualifier, ccnQualifier.Type);
+						}
+						else
+						{
+							qualifierName = Utilities.GetQualifierName(systemQualifier, objectType - 1);
+						}
+						
+						relevantObjectInfos.Add(new Tuple<int, string>(short.MaxValue + systemQualifier + 1, qualifierName));
 						break;
 					}
 
@@ -459,18 +494,20 @@ public class EventProcessor
 	public bool IsTimerEvent(EventGroup evtGroup)
 	{
 		// TODO: Verify if any other conditions should be considered a timer event, I got these from 2006 documentation: https://www.clickteam.com/creation_materials/tutorials/download/Fusion_runtime.pdf
-		foreach (var condition in evtGroup.Conditions)
+		if (new StartOfFrameCondition().Equals(evtGroup.Conditions[0])
+			|| new TimerComparisonLessThanCondition().Equals(evtGroup.Conditions[0])
+			|| new TimerComparisonGreaterThanCondition().Equals(evtGroup.Conditions[0])
+			|| new TimerComparisonEqualToCondition().Equals(evtGroup.Conditions[0]))
 		{
-			if (new StartOfFrameCondition().Equals(condition)
-				|| new TimerComparisonLessThanCondition().Equals(condition)
-				|| new TimerComparisonGreaterThanCondition().Equals(condition)
-				|| new TimerComparisonEqualToCondition().Equals(condition))
-			{
-				return true;
-			}
+			return true;
 		}
 
 		return false;
+	}
+
+	public bool IsAnimationEvent(EventGroup evtGroup)
+	{
+		return new AnimationOverCondition().Equals(evtGroup.Conditions[0]);
 	}
 
 	//Adds global events to the frame

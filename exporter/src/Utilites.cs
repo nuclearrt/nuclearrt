@@ -8,6 +8,20 @@ public static class Utilities
 		return reader.getGameData().frameitems[objectInfo].name;
 	}
 
+	public static Quailifer? FindFrameQualifier(int frameIndex, int mfaObjectInfoHandle, int systemQualifier)
+	{
+		Quailifer? quailifer = Exporter.Instance.GameData.Frames[frameIndex].events.QualifiersList.Find(q => q.ObjectInfo == mfaObjectInfoHandle);
+		if (quailifer != null) return quailifer;
+		
+		if (systemQualifier != 0)
+		{
+			int packedOi = 32768 + systemQualifier;
+			return Exporter.Instance.GameData.Frames[frameIndex].events.QualifiersList.Find(q => q.ObjectInfo == packedOi);
+		}
+
+		return null;
+	}
+
 	public static string GetQualifierName(int groupIndex, int qualifierType)
 	{
 		string qualifierName = "Group_" + (groupIndex) switch

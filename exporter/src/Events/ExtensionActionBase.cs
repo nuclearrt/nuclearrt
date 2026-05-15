@@ -11,6 +11,6 @@ public class ExtensionActionBase : ActionBase
 			return $"// Extension exporter not found for ObjectInfo {eventBase.ObjectInfo}";
 		}
 
-		return exporter.ExportAction(eventBase, eventBase.Num, ref nextLabel, ref orIndex, parameters, IsGlobal);
+		return exporter.ExportAction(eventBase, eventBase.Num - 80, ref nextLabel, ref orIndex, parameters, IsGlobal);
 	}
 }

@@ -74,7 +74,7 @@ public static class StringUtils
 			input = "_" + input;
 		}
 		
-		string[] invalidChars = [" ", ".", "-", ":", ";", ",", "!", "?", "*", "/", "\\", "|", "`", "'", "\"", "&", "+", "(", ")", "=", "%", "[", "]"];
+		string[] invalidChars = [" ", ".", "-", ":", ";", ",", "!", "?", "*", "/", "\\", "|", "`", "'", "\"", "&", "+", "(", ")", "=", "%", "[", "]", "@"];
 		
 		foreach (string invalidChar in invalidChars)
 		{

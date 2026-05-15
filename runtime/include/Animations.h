@@ -25,6 +25,9 @@ public:
 	int GetYActionPoint() const;
 	int GetXHotspot() const;
 	int GetYHotspot() const;
+
+	int GetWidth() const;
+	int GetHeight() const;
 	
 	void Start();
 	void Stop();

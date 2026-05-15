@@ -44,3 +44,13 @@ public class StringReappearAction : ReappearAction
 {
 	public override int ObjectType { get; set; } = 3;
 }
+
+public class ExtensionMakeInvisibleAction : MakeInvisibleAction
+{
+	public override int ObjectType { get; set; } = 32;
+}
+
+public class ExtensionReappearAction : ReappearAction
+{
+	public override int ObjectType { get; set; } = 32;
+}

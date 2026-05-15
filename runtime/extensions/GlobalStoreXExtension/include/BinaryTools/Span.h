@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 
 //Simple wrapper around a contiguous area of memory
 template<class T>

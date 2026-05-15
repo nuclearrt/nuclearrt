@@ -6,21 +6,22 @@
 BinaryWriter::BinaryWriter(std::string_view inputPath, bool truncate)
 {
     //Can't simply exclude the truncate flag when !truncate. More details here: https://stackoverflow.com/a/57070159
-    int flags = 0;
+    const std::string path(inputPath);
+    std::ios::openmode flags = std::ios::binary;
     if (truncate)
-        flags = std::ofstream::out | std::ofstream::binary | std::ofstream::trunc; //Clears existing contents of the file
+        flags |= std::ios::out | std::ios::trunc; //Clears existing contents of the file
     else
-        flags = std::ofstream::in | std::ofstream::out | std::ofstream::binary;
+        flags |= std::ios::in | std::ios::out;
 
     //If not truncating and the file doesn't exist, then opening will fail. So we create the file first if it doesn't exist
-    if (!truncate && !std::filesystem::exists(inputPath))
+    if (!truncate && !std::filesystem::exists(path))
     {
         std::fstream f;
-        f.open(inputPath, std::fstream::out);
+        f.open(path, std::ios::out);
         f.close();
     }
 
-    stream_ = new std::ofstream(std::string(inputPath), flags);
+    stream_ = new std::ofstream(path, flags);
 }
 
 BinaryWriter::BinaryWriter(char* buffer, uint32_t sizeInBytes)
@@ -33,7 +34,7 @@ BinaryWriter::~BinaryWriter()
 {
     delete stream_;
     if (buffer_)
-        delete[] buffer_;
+        delete buffer_;
 }
 
 void BinaryWriter::Flush()

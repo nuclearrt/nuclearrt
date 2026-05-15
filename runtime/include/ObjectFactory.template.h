@@ -19,6 +19,8 @@
 #include "BouncingBallMovement.h"
 #include "PathMovement.h"
 
+#include "EffectBank.h"
+
 {{ EXTENSION_INCLUDES }}
 
 class ObjectFactory {
