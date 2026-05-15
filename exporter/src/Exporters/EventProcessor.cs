@@ -106,7 +106,7 @@ public class EventProcessor
 
 			int numberOfOrConditions = NumberOfOrConditions(evt);
 			int orConditionIndex = 0;
-			string nextLabel = GenerateEventNextLabel(evt, numberOfOrConditions);
+			string nextLabel = GenerateEventNextLabel(evt, 0, numberOfOrConditions);
 			string idName = GetEventBaseName(evt);
 
 			List<Tuple<int, string>> usedSelectors = new List<Tuple<int, string>>(); // if a selector has already been reset during this event, don't reset it again
@@ -537,17 +537,17 @@ public class EventProcessor
 	// utilities
 	public static string GetEventBaseName(EventGroup evt)
 	{
-		return $"event{(evt.IsGlobal ? "_global" : "")}_{evt.Identifier}";
+		return $"{(evt.IsGlobal ? "global_" : "")}event_{evt.Identifier}";
 	}
 
 	public static string GetEventName(EventGroup evt)
 	{
-		return $"Event{(evt.IsGlobal ? "_Global" : "")}_{evt.Identifier}";
+		return $"{(evt.IsGlobal ? "Global_" : "")}Event_{evt.Identifier}";
 	}
 
-	public static string GenerateEventNextLabel(EventGroup evt, int orConditionIndex = 0)
+	public static string GenerateEventNextLabel(EventGroup evt, int orConditionIndex, int totalOrs)
 	{
-		string suffix = orConditionIndex > 0 ? $"_or_{orConditionIndex}" : "_end";
-		return $"{GetEventBaseName(evt)}{suffix}";
+		if (orConditionIndex < totalOrs) return $"{GetEventBaseName(evt)}_or_{orConditionIndex}";
+		return $"{GetEventBaseName(evt)}_end";
 	}
 }

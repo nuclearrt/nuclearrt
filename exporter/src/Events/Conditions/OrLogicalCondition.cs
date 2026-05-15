@@ -16,7 +16,7 @@ public class OrLogicalCondition : ConditionBase
 		result.AppendLine($"{parameters["eventBaseName"]}_or_{orIndex}:;");
 
 		orIndex++;
-		nextLabel = EventProcessor.GenerateEventNextLabel(parameters["eventGroup"] as EventGroup, orIndex);
+		nextLabel = EventProcessor.GenerateEventNextLabel(parameters["eventGroup"] as EventGroup, orIndex, (int)parameters["numOfOrs"]);
 
 		//Reset instances
 		//TODO: check if were are only resetting actually relevant instances
