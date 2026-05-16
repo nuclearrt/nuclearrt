@@ -31,6 +31,8 @@ void Input::Reset()
 		m_gamepadState[0][i] = 0;
 		m_gamepadState[1][i] = 0;
 	}
+
+	m_playerEnabled = {true, true, true, true};
 }
 
 bool Input::IsKeyDown(short key)
@@ -79,8 +81,20 @@ void Input::SetControlKey(int player, short control, unsigned short key)
 	Application::Instance().GetAppData()->GetControlKeys()[player][control] = key;
 }
 
+void Input::RestoreControl(int player)
+{
+	m_playerEnabled[player] = true;
+}
+
+void Input::IgnoreControl(int player)
+{
+	m_playerEnabled[player] = false;
+}
+
 bool Input::IsControlsDown(int player, short control)
 {
+	if (!m_playerEnabled[player]) return false;
+
 	int controlType = Application::Instance().GetAppData()->GetControlTypes()[player];
 	if (controlType != 0)
 	{
@@ -105,6 +119,8 @@ bool Input::IsControlsDown(int player, short control)
 
 bool Input::IsControlsPressed(int player, short control)
 {
+	if (!m_playerEnabled[player]) return false;
+	
 	int controlType = Application::Instance().GetAppData()->GetControlTypes()[player];
 	if (controlType != 0)
 	{

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 class Input
 {
@@ -21,6 +22,9 @@ public:
 
 	void SetControlKey(int player, short control, unsigned short key);
 
+	void RestoreControl(int player);
+	void IgnoreControl(int player);
+
 	bool IsControlsDown(int player, short control);
 	bool IsControlsPressed(int player, short control);
 
@@ -38,5 +42,7 @@ private:
 	uint32_t previousMouseState;
 
 	uint8_t m_gamepadState[2][4];
+
+	std::vector<bool> m_playerEnabled;
 };
 
