@@ -108,6 +108,23 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(_DEBUG)
 endif()
 
+# Determine default for Debug UI
+set(DEBUG_UI_DEFAULT OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(DEBUG_UI_DEFAULT ON)
+endif()
+
+# Create a toggleable option in CMake settings
+option(NUCLEAR_DEBUG_UI "Enable the Debug UI (ignored in Debug)" ${DEBUG_UI_DEFAULT})
+
+if(NUCLEAR_DEBUG_UI)
+    add_compile_definitions(NUCLEAR_DEBUG_UI)
+endif()
+
+# Force it on in Debug regardless of the option above (due to MSVC where CMAKE_BUILD_TYPE is never set)
+add_compile_definitions($<$<CONFIG:Debug>:NUCLEAR_DEBUG_UI>)
+
+
 # Dear ImGui setup
 if(NOT EMSCRIPTEN)
     set(IMGUI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui")

@@ -12,7 +12,7 @@
 #include <SDL_mixer.h>
 #include <SDL_ttf.h>
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 #include "DebugUI.h"
 #include <imgui_impl_sdl2.h>
 #endif
@@ -81,7 +81,7 @@ void SDL2Backend::Initialize() {
 		return;
 	}
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	DEBUG_UI.Initialize(window, renderer);
 	
 	DEBUG_UI.AddWindow(Application::Instance().GetAppData()->GetAppName(), [this]() {
@@ -180,7 +180,7 @@ void SDL2Backend::Initialize() {
 
 void SDL2Backend::Deinitialize()
 {
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	DEBUG_UI.Shutdown();
 #endif
 
@@ -209,7 +209,7 @@ bool SDL2Backend::ShouldQuit()
 {
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 		// Process ImGui events
 		if (DEBUG_UI.IsEnabled()) {
 			ImGui_ImplSDL2_ProcessEvent(&event);
@@ -272,14 +272,14 @@ void SDL2Backend::BeginDrawing()
 	SDL_SetRenderDrawColor(renderer, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
 	SDL_RenderClear(renderer);
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	DEBUG_UI.BeginFrame();
 #endif
 }
 
 void SDL2Backend::EndDrawing()
 {
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	DEBUG_UI.EndFrame();
 #endif
 

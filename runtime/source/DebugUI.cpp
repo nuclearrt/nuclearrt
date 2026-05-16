@@ -1,6 +1,6 @@
 #include "DebugUI.h"
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 
 #include <SDL3/SDL.h>
 #include <cstdio>
