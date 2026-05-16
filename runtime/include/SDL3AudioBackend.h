@@ -55,27 +55,15 @@ public:
 	int GetSampleVolume(int id) override;
 	int GetSampleVolume(std::string name) override;
 	int GetChannelVolume(int id) override;
-	std::string GetChannelName(int channel) override {return channels[channel].name;}
+	std::string GetChannelName(int channel) override;
 	void SetSampleVolume(float volume, int id, bool channel) override;
-	void LockChannel(int channel, bool unlock) override {if (unlock) channels[channel].lock = false; else channels[channel].lock = true;}
+	void LockChannel(int channel, bool unlock) override;
 	void SetSamplePan(float pan, int id, bool channel) override;
 	int GetSamplePan(int id, bool channel) override;
 	void SetSampleFreq(int freq, int id, bool channel) override;
 	int GetSampleFreq(int id, bool channel) override;
-	int GetSampleDuration(int id, bool channel) override {
-		if (channel && (id > 1 || id < 48)) return static_cast<int>(channels[id].data_len);
-		if (!channel && id > -1) {
-			for (int i = 1; i < SDL_arraysize(channels); ++i) if (channels[i].curHandle == id) return static_cast<int>(channels[i].data_len);	
-		}
-		return 0;
-	}
-	int GetSamplePos(int id, bool channel) override {
-		if (channel && (id > 1 || id < 48)) return channels[id].position;
-		if (!channel && id > -1) {
-			for (int i = 1; i < SDL_arraysize(channels); ++i) if (channels[i].curHandle == id) return channels[i].position;
-		}
-		return 0;
-	}
+	int GetSampleDuration(int id, bool channel) override;
+	int GetSamplePos(int id, bool channel) override;
 	void SetSamplePos(int pos, int id, bool channel) override;
 	void StopSample(int id, bool channel) override;
 	
@@ -89,6 +77,8 @@ private:
 	std::unordered_map<std::string, SampleFile> sampleFiles;
 	Channel channels[49]; // 48 will be the last element.
 	SDL_AudioStream* masterStream;
+	bool sampleFocusGainApplied = false;
+	bool lastWindowFocused = true;
 
 	SDL3Backend* backend = nullptr;
 }; 
