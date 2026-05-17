@@ -280,10 +280,8 @@ int SDL3AudioBackend::FindSample(std::string name) {
 
 void SDL3AudioBackend::PlaySample(int id, int channel, int loops, int freq, bool uninterruptable, float volume, float pan) {
 	AudioStreamLock lock(masterStream);
-	bool replaceSample = false;
-	bool channelsFilled = false;
-	bool channelFound = false;
 	if (channel < 1 || channel >= SDL_arraysize(channels)) {
+		bool channelFound = false;
 		for (int i = 1; i < SDL_arraysize(channels); i++) {
 			if (!channels[i].stream && !channels[i].data && !channels[i].lock) {
 				channel = i;
@@ -293,21 +291,24 @@ void SDL3AudioBackend::PlaySample(int id, int channel, int loops, int freq, bool
 		}
 
 		if (!channelFound) {
-			channelsFilled = true;
 			channel = 48;
 		}
-		channels[channel].uninterruptable = uninterruptable;
 	}
 	else { // Channel is given.
-		channels[channel].uninterruptable = uninterruptable;
-		if (channels[channel].uninterruptable) replaceSample = true;
+		if (channels[channel].stream && channels[channel].data) // a sound is playing
+		{
+			if (channels[channel].uninterruptable && !uninterruptable) {
+				//backend->GetPlatform()->Log("Channel " + std::to_string(channel) + " is uninterruptable. Can't play sample.");
+				return;
+			}
+		}
 	}
-	if (replaceSample) {
-		StopSample(channel, true);
-	}
+	
+	//clear out channel
+	StopSample(channel, true);
+	
 	if (!LoadSample(id, channel)) return;
 
-	if (channels[channel].stream) StopSample(channel, true);
 	channels[channel].stream = SDL_CreateAudioStream(&channels[channel].spec, &spec);
 	if (!channels[channel].stream) {
 		backend->GetPlatform()->Log("SDL_CreateAudioStream error : " + std::string(SDL_GetError()));
@@ -317,6 +318,7 @@ void SDL3AudioBackend::PlaySample(int id, int channel, int loops, int freq, bool
 	channels[channel].loop = (loops <= 0);
 	channels[channel].position = 0;
 	channels[channel].pause = false;
+	channels[channel].uninterruptable = uninterruptable;
 	if (channels[channel].loop) SDL_PutAudioStreamData(channels[channel].stream, channels[channel].data, channels[channel].data_len);
 	else {
 		for (int i = 1; i <= loops; i++) {
