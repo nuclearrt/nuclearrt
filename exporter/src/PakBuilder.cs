@@ -110,7 +110,7 @@ public class PakBuilder
 			{
 				var fragFile = EffectBankExporter.GetThirdPartyFrag(outputPath, shaderVersion.Item1, hash);
 				if (fragFile == null || !fragFile.Exists) continue;
-				
+
 				var entry = new PakEntry { Path = $"shaders/thirdparty/{hash}.frag" };
 				entry.Data = File.ReadAllBytes(fragFile.FullName);
 				entry.Size = (uint)entry.Data.Length;
@@ -167,8 +167,8 @@ public class PakFile
 	{
 		Directory.CreateDirectory(Path.GetDirectoryName(path));
 
-		entries = entries.Distinct().ToList();
-		
+		entries = entries.DistinctBy(e => e.Path).ToList();
+
 		//calculate offsets
 		uint dataOffset = 12; // header size
 		foreach (var entry in entries)
