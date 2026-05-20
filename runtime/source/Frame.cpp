@@ -276,6 +276,55 @@ void Frame::DrawLayer(Layer& layer)
 			{
 				Application::Instance().GetBackend()->graphics->DrawCounterBar(instance->X - scrollXOffset, instance->Y - scrollYOffset, (Counter*)counter);
 			}
+			else if (counter->DisplayType == 4) // Animation
+			{
+				if (instance->Type == 6) // Lives
+				{
+					int count = Application::Instance().GetAppData()->GetPlayerLives()[counter->Player];
+					int imageWidth = ImageBank::Instance().GetImage(counter->Frames[0])->Width;
+					int imageHeight = ImageBank::Instance().GetImage(counter->Frames[0])->Height;
+					int x = instance->X - scrollXOffset;
+					int y = instance->Y - scrollYOffset;
+					for (int i = 0; i < count; i++)
+					{
+						if (counter->Width > 0 && (x - (instance->X - scrollXOffset)) >= counter->Width)
+						{
+							x = instance->X - scrollXOffset; 
+							y += imageHeight;
+						}
+
+						Application::Instance().GetBackend()->graphics->DrawTexture(counter->Frames[0], x, y, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
+						x += imageWidth;
+					}
+				}
+				else
+				{
+					int imageID = 0;
+					int frameIndex = 0;
+					int imageCount = counter->Frames.size();
+					
+					if (imageCount > 1)
+					{
+						int value = ((Counter*)instance)->GetValue();
+						int minValue = ((Counter*)instance)->MinValue;
+						int maxValue = ((Counter*)instance)->MaxValue;
+
+						if (value >= maxValue)
+						{
+							frameIndex = imageCount - 1;
+						}
+						else
+						{
+							frameIndex = (value - minValue) * (imageCount - 1) / (maxValue - minValue);
+							frameIndex = std::clamp(frameIndex, 0, imageCount - 2);
+						}
+					}
+					
+					imageID = counter->Frames[frameIndex];
+
+					Application::Instance().GetBackend()->graphics->DrawTexture(imageID, instance->X - scrollXOffset, instance->Y - scrollYOffset, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
+				}
+			}
 		}
 		else if (instance->Type == 0) // Quick backdrop
 		{
