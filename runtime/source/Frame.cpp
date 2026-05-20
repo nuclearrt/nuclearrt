@@ -253,24 +253,8 @@ void Frame::DrawLayer(Layer& layer)
 
 			//TODO: Add support for other display types
 			if (counter->DisplayType == 1) // Numbers
-			{
-				auto appdata = Application::Instance().GetAppData();
-
-				int value = 0;
-				if (instance->Type == 5) // Score
-				{
-					value = Application::Instance().GetAppData()->GetPlayerScores()[counter->Player];
-				}
-				else if (instance->Type == 6) // Lives
-				{
-					value = Application::Instance().GetAppData()->GetPlayerLives()[counter->Player];
-				}
-				else
-				{
-					value = ((Counter*)instance)->GetValue();
-				}
-				
-				DrawCounterNumbers(counter, value, instance->X - scrollXOffset, instance->Y - scrollYOffset);
+			{				
+				DrawCounterNumbers(counter, counter->GetValue(), instance->X - scrollXOffset, instance->Y - scrollYOffset);
 			}
 			else if (counter->DisplayType == 2 || counter->DisplayType == 3) // Bar
 			{
@@ -688,9 +672,7 @@ void Frame::ApplyGlobalObjectData(std::vector<ObjectGlobalData*> savedData)
 
 //Check if the object is colliding with any backdrop
 bool Frame::IsCollidingWithBackground(ObjectInstance *instance)
-{
-	if (instance->Type != 2) return false; // Only Active objects
-	
+{	
 	// Check collision with all backdrop objects
 	for (auto& [handle, backdropInstance] : ObjectInstances)
 	{
@@ -773,6 +755,28 @@ static CollisionInstanceBounds GetInstanceBounds(Frame* frame, ObjectInstance* i
 			bounds.maskWidth = imageInfo->Width;
 			bounds.maskHeight = imageInfo->Height;
 		}
+	} else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) { // Counters
+		CounterBase* counter = (CounterBase*)instance;
+		int scrollXOffset = 0, scrollYOffset = 0;
+		if (counter->FollowFrame)
+		{
+			scrollXOffset = scrollX * frame->Layers[instance->Layer].XCoefficient;
+			scrollYOffset = scrollY * frame->Layers[instance->Layer].YCoefficient;
+		}
+		drawX = instance->X - scrollXOffset;
+		drawY = instance->Y - scrollYOffset;
+		if (counter)
+		{
+			bounds.width = counter->GetCounterWidth();
+			bounds.height = counter->GetCounterHeight();
+
+			if (counter->DisplayType == 1)
+			{
+				drawX -= bounds.width;
+				drawY -= bounds.height;
+			}
+		}
+	
 	} else { // Active object
 		Active* active = (Active*)instance;
 		imageId = active->animations.GetCurrentImageHandle();
@@ -877,11 +881,6 @@ static int ConvertScaledCoordToMaskCoord(int scaledCoord, float scale, int maskS
 
 bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 {
-	//Only check collision for relevant object types
-	if ((instance1->Type != 0 && instance1->Type != 1 && instance1->Type != 2) ||
-		(instance2->Type != 0 && instance2->Type != 1 && instance2->Type != 2))
-		return false;
-
 	// Check if the objects are on the same layer
 	if (instance1->Layer != instance2->Layer) return false;
 
@@ -898,6 +897,8 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 		imageId1 = ((QuickBackdrop*)instance1)->shape.Image;
 	} else if (instance1->Type == 1) {
 		imageId1 = ((Backdrop*)instance1)->Image;
+	} else if (instance1->Type == 5 || instance1->Type == 6 || instance1->Type == 7) {
+		imageId1 = -1;
 	} else {
 		imageId1 = ((Active*)instance1)->animations.GetCurrentImageHandle();
 	}
@@ -906,13 +907,15 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 		imageId2 = ((QuickBackdrop*)instance2)->shape.Image;
 	} else if (instance2->Type == 1) {
 		imageId2 = ((Backdrop*)instance2)->Image;
+	} else if (instance2->Type == 5 || instance2->Type == 6 || instance2->Type == 7) {
+		imageId2 = -1;
 	} else {
 		imageId2 = ((Active*)instance2)->animations.GetCurrentImageHandle();
 	}
 	
 	Backend* backend = Application::Instance().GetBackend().get();
-	const std::vector<uint8_t>* maskData1 = backend->platform->GetCollisionMaskData(imageId1);
-	const std::vector<uint8_t>* maskData2 = backend->platform->GetCollisionMaskData(imageId2);
+	const std::vector<uint8_t> *maskData1 = (unsigned int)imageId1 != -1 ? backend->platform->GetCollisionMaskData(imageId1) : nullptr;
+	const std::vector<uint8_t> *maskData2 = (unsigned int)imageId2 != -1 ? backend->platform->GetCollisionMaskData(imageId2) : nullptr;
 
 	bool useMask1 = maskData1 && !maskData1->empty() && (instance1->Type == 1 || (instance1->Type == 2 && ((Active*)instance1)->FineDetection));
 	bool useMask2 = maskData2 && !maskData2->empty() && (instance2->Type == 1 || (instance2->Type == 2 && ((Active*)instance2)->FineDetection));
@@ -999,8 +1002,6 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 
 bool Frame::IsColliding(ObjectInstance *instance, int x, int y)
 {
-	if (instance->Type != 0 && instance->Type != 1 && instance->Type != 2) return false;
-
 	x -= scrollX;
 	y -= scrollY;
 
@@ -1016,7 +1017,12 @@ bool Frame::IsColliding(ObjectInstance *instance, int x, int y)
 	} else if (instance->Type == 1) {
 		imageId = ((Backdrop*)instance)->Image;
 		fineDetection = true;
-	} else {
+	}
+	if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) {
+		imageId = -1;
+		fineDetection = false;
+	}
+	else {
 		imageId = ((Active*)instance)->animations.GetCurrentImageHandle();
 		fineDetection = ((Active*)instance)->FineDetection;
 	}

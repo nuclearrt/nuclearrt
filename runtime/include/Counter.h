@@ -15,7 +15,7 @@ public:
 	int MinValue = 0;
 	int MaxValue = 0;
 
-	int GetValue() const { return currentValue; }
+	int GetValue() const override { return currentValue; }
 	void SetValue(int value)
 	{
 		if (value < MinValue)
