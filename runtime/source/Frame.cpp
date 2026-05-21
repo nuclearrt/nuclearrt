@@ -755,6 +755,22 @@ static CollisionInstanceBounds GetInstanceBounds(Frame* frame, ObjectInstance* i
 			bounds.maskWidth = imageInfo->Width;
 			bounds.maskHeight = imageInfo->Height;
 		}
+	}
+	else if (instance->Type == 3) { // String
+		StringObject* stringObj = (StringObject*)instance;
+		int scrollXOffset = 0, scrollYOffset = 0;
+		if (stringObj->FollowFrame)
+		{
+			scrollXOffset = scrollX * frame->Layers[instance->Layer].XCoefficient;
+			scrollYOffset = scrollY * frame->Layers[instance->Layer].YCoefficient;
+		}
+		drawX = instance->X - scrollXOffset;
+		drawY = instance->Y - scrollYOffset;
+
+		bounds.width = stringObj->Width;
+		bounds.height = stringObj->Height;
+		bounds.maskWidth = bounds.width;
+		bounds.maskHeight = bounds.height;
 	} else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) { // Counters
 		CounterBase* counter = (CounterBase*)instance;
 		int scrollXOffset = 0, scrollYOffset = 0;
@@ -769,6 +785,8 @@ static CollisionInstanceBounds GetInstanceBounds(Frame* frame, ObjectInstance* i
 		{
 			bounds.width = counter->GetCounterWidth();
 			bounds.height = counter->GetCounterHeight();
+			bounds.maskWidth = bounds.width;
+			bounds.maskHeight = bounds.height;
 
 			if (counter->DisplayType == 1)
 			{
@@ -897,17 +915,17 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 		imageId1 = ((QuickBackdrop*)instance1)->shape.Image;
 	} else if (instance1->Type == 1) {
 		imageId1 = ((Backdrop*)instance1)->Image;
-	} else if (instance1->Type == 5 || instance1->Type == 6 || instance1->Type == 7) {
+	} else if (instance1->Type == 3 || instance1->Type == 5 || instance1->Type == 6 || instance1->Type == 7) {
 		imageId1 = -1;
 	} else {
 		imageId1 = ((Active*)instance1)->animations.GetCurrentImageHandle();
 	}
-	
+
 	if (instance2->Type == 0) {
 		imageId2 = ((QuickBackdrop*)instance2)->shape.Image;
 	} else if (instance2->Type == 1) {
 		imageId2 = ((Backdrop*)instance2)->Image;
-	} else if (instance2->Type == 5 || instance2->Type == 6 || instance2->Type == 7) {
+	} else if (instance2->Type == 3 || instance2->Type == 5 || instance2->Type == 6 || instance2->Type == 7) {
 		imageId2 = -1;
 	} else {
 		imageId2 = ((Active*)instance2)->animations.GetCurrentImageHandle();
@@ -1018,7 +1036,7 @@ bool Frame::IsColliding(ObjectInstance *instance, int x, int y)
 		imageId = ((Backdrop*)instance)->Image;
 		fineDetection = true;
 	}
-	if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) {
+	if (instance->Type == 3 || instance->Type == 5 || instance->Type == 6 || instance->Type == 7) {
 		imageId = -1;
 		fineDetection = false;
 	}
