@@ -14,7 +14,7 @@ public class TimerComparisonEveryCondition : ConditionBase
 		}
 		else if (eventBase.Items[0].Loader is Every every)
 		{
-			return $"{ifStatement} (GameTimer.CheckEvent({parameters["eventIndex"]}, {every.Compteur}, TimerEventType::Every))) goto {nextLabel};";
+			return $"{ifStatement} (GameTimer.CheckEvent({parameters["eventIndex"]}, {every.Delay}, TimerEventType::Every))) goto {nextLabel};";
 		}
 
 		return $"//Unsupported timer type: {eventBase.Items[0].Loader.GetType()}";
