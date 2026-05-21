@@ -4,6 +4,7 @@
 #include "AudioBackend.h"
 #include "GameState.h"
 #include "Input.h"
+#include "InputBackend.h"
 #include "ObjectFactory.h"
 #include "MathHelper.h"
 #include "PlatformBackend.h"
