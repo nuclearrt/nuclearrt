@@ -9,14 +9,15 @@ using CTFAK.MMFParser.EXE.Loaders.Events.Expressions;
 
 public static class ExtensionExporterRegistry
 {
-	private static readonly List<ExtensionExporter> exporters = new List<ExtensionExporter>
-	{
+	private static readonly List<ExtensionExporter> exporters =
+	[
 		new ButtonObjectExporter(),
 		new IniExporter(),
 		new LayerObjectExporter(),
 		new GlobalStoreXExporter(),
-		new PerspectiveExporter()
-	};
+		new PerspectiveExporter(),
+		new IniPlusPlusExporter(),
+	];
 
 	public static ExtensionExporter GetExporter(string extensionName)
 	{

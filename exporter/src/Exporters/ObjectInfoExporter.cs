@@ -91,7 +91,7 @@ public class ObjectInfoExporter : BaseExporter
 					}
 				}
 				else {
-					result.AppendLine($"// Identifier {common.Identifier}");
+					result.AppendLine($"// Identifier {common.Identifier} ({common.Identifier.ToCharArray().Select(c => $"\\u{((int)c):X4}").Aggregate((a, b) => a + b)})");
 				}
 			}
 		}
@@ -159,7 +159,7 @@ public class ObjectInfoExporter : BaseExporter
 							break;
 						}
 					}
-					
+
 					if (isGlobal) break;
 				}
 
