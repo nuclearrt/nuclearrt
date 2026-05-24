@@ -17,6 +17,7 @@ public static class ExtensionExporterRegistry
 		new GlobalStoreXExporter(),
 		new PerspectiveExporter(),
 		new IniPlusPlusExporter(),
+		new EasingObjectExporter(),
 	];
 
 	public static ExtensionExporter GetExporter(string extensionName)
