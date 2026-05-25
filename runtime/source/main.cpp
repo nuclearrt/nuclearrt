@@ -1,6 +1,10 @@
 
 #include "Application.h"
 
+#if defined(_MSC_VER) && !defined(_DEBUG)
+#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+#endif
+
 int main(int argc, char *argv[])
 {
 	Application& app = Application::Instance();
