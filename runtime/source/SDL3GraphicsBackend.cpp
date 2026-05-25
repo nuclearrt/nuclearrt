@@ -1118,6 +1118,7 @@ void SDL3GraphicsBackend::DrawCounterBar(int x, int y, Counter* counter)
 	currentEffect = -1;
 	glUniform4f(gradientShaderColor1Loc, r1, g1, b1, 1.0f);
 	glUniform4f(gradientShaderColor2Loc, r2, g2, b2, 1.0f);
+	glUniform1i(gradientShaderCircleClipLoc, 0);
 	glUniform1i(gradientShaderVerticalLoc, counter->shape.VerticalGradient ? 1 : 0);
 
 	RenderQuad(static_cast<float>(fillX), static_cast<float>(fillY), static_cast<float>(fillWidth), static_cast<float>(fillHeight), 0.0f, 0.0f, 0.0f, u0, v0, u1, v1);
