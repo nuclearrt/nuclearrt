@@ -154,6 +154,8 @@ if(APPLE AND NOT EMSCRIPTEN)
         MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.nuclearrt.${PROJECT_NAME}"
     )
+elseif(WIN32 AND NOT EMSCRIPTEN)
+    add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${IMGUI_SOURCES} resources.rc)
 else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${IMGUI_SOURCES})
 endif()
