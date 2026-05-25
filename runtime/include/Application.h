@@ -52,6 +52,7 @@ public:
 
 	short Random(short max);
 	short RandomRange(short min, short max);
+	bool RandomChance(short chance, short max);
 
 	Application();
 	~Application();

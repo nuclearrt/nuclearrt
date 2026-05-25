@@ -142,6 +142,12 @@ short Application::RandomRange(short min, short max)
 	return rand() % (max - min + 1) + min;
 }
 
+bool Application::RandomChance(short chance, short max)
+{
+	if (chance >= max) return true;
+	return Random(max) < chance;
+}
+
 void Application::LoadFrame(int frameIndex)
 {
 	if (frameIndex < 0)
