@@ -30,8 +30,8 @@ WizardStyle=modern
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "D:\development\nuclearrt-alpha\build\runtime\*"; DestDir: "{app}/NuclearRT/runtime"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "D:\development\nuclearrt-alpha\build\exporter\*"; DestDir: "{app}/NuclearRT/exporter"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "D:\development\nuclearrt-alpha\build\nuclearrt.bld"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\runtime\*"; DestDir: "{app}/NuclearRT/runtime"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\exporter\bin\Release\net9.0-windows\publish\win-x64\*"; DestDir: "{app}/NuclearRT/exporter"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\plugin\nuclearrt.bld"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
