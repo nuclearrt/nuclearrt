@@ -14,6 +14,8 @@ public:
 
 	bool IsSequencePlaying(int sequence) const;
 	bool IsSequenceOver(int sequence) const;
+	bool IsFacingDirectionMask(int directionMask) const;
+	bool IsFacingDirection(int directionIndex) const;
 	std::vector<unsigned int> GetImagesUsed() const;
 	unsigned int GetCurrentImageHandle() const;
 	unsigned int GetCurrentSequenceIndex() const;

@@ -28,7 +28,19 @@ bool Animations::IsSequenceOver(int sequence) const {
 	return SequenceOverEvents.find(sequence) != SequenceOverEvents.end();
 }
 
-std::vector<unsigned int> Animations::GetImagesUsed() const {
+bool Animations::IsFacingDirection(int directionIndex) const
+{
+	return GetCurrentDirection() == directionIndex;
+}
+
+bool Animations::IsFacingDirectionMask(int directionMask) const
+{
+	if (directionMask == -1) return true;
+	return (1 << GetCurrentDirection()) & directionMask;
+}
+
+std::vector<unsigned int> Animations::GetImagesUsed() const
+{
 	std::vector<unsigned int> imagesUsed;
 	for (const auto& sequencePair : Sequences) {
 		const auto& sequence = sequencePair.second;
