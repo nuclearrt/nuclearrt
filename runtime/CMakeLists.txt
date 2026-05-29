@@ -163,7 +163,7 @@ else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${IMGUI_SOURCES})
 endif()
 
-option(NUCLEAR_DEBUG_UI "Enable the in-application Debug UI Toggle" ${DEBUG_UI_DEFAULT})
+option(NUCLEAR_DEBUG_UI "Enable the in-application Debug UI Toggle" OFF)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     "$<$<OR:$<BOOL:${NUCLEAR_DEBUG_UI}>,$<CONFIG:Debug>>:NUCLEAR_DEBUG_UI>"
