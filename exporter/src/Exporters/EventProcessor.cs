@@ -312,6 +312,17 @@ public class EventProcessor
 					count++;
 				}
 			}
+			else if (expression.Loader is Shoot)
+			{
+				objectInfos.Add((expression.Loader as Shoot).ObjectInfo);
+				count++;
+
+				if ((expression.Loader as Shoot).ShootPos.ObjectInfoParent != ushort.MaxValue)
+				{
+					objectInfos.Add((int)(expression.Loader as Shoot).ShootPos.ObjectInfoParent);
+					count++;
+				}
+			}
 		}
 
 		foreach (var objectInfo in objectInfos)

@@ -18,6 +18,7 @@
 #include "EightDirectionsMovement.h"
 #include "BouncingBallMovement.h"
 #include "PathMovement.h"
+#include "BulletMovement.h"
 
 #include "EffectBank.h"
 
