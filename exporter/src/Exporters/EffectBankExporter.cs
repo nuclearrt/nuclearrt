@@ -54,7 +54,14 @@ public class EffectBankExporter : BaseExporter
 		for (int i = 0; i < shader.Parameters.Count; i++)
 		{
 			var parameter = shader.Parameters[i];
-			result.Append($"        EffectParameter(\"{parameter.Name}\", {parameter.Type}, {parameter.Value})");
+
+			string valueString = parameter.Value.ToString();
+			if (parameter.Type == 1) // float
+				valueString = $"{valueString}.0f";
+			else if (parameter.Type == 2) // color
+				valueString = $"0x{(parameter.Value):X8}";
+
+			result.Append($"        EffectParameter(\"{parameter.Name}\", {parameter.Type}, {valueString})");
 			if (i < shader.Parameters.Count - 1) result.AppendLine(",");
 			else result.AppendLine();
 		}

@@ -711,11 +711,11 @@ void SDL3GraphicsBackend::ApplyEffectParameters(EffectInstance* effectInstance, 
 				GLint loc = glGetUniformLocation(shader->program, param.Name.c_str());
 				if (loc < 0) continue;
 				if (param.Type == 0) { // Int
-					glUniform1i(loc, std::any_cast<int>(param.Value));
+					glUniform1i(loc, std::get<int>(param.Value));
 				} else if (param.Type == 1) { // Float
-					glUniform1f(loc, std::any_cast<float>(param.Value));
+					glUniform1f(loc, std::get<float>(param.Value));
 				} else if (param.Type == 2) { // Color
-					int c = std::any_cast<int>(param.Value);
+					int c = std::get<int>(param.Value);
 					float pr = (c & 0xFF) / 255.0f;
 					float pg = ((c >> 8) & 0xFF) / 255.0f;
 					float pb = ((c >> 16) & 0xFF) / 255.0f;
