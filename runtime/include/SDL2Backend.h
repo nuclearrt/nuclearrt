@@ -8,7 +8,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 #include "DebugUI.h"
 #endif
 
@@ -84,7 +84,7 @@ public:
 	float GetTimeDelta() override;
 	void Delay(unsigned int ms) override;
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	void ToggleDebugUI() { DEBUG_UI.ToggleEnabled(); }
 	bool IsDebugUIEnabled() { return DEBUG_UI.IsEnabled(); }
 #endif
