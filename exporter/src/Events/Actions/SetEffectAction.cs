@@ -21,6 +21,10 @@ public class SetEffectAction : ActionBase
 		{
 			result.AppendLine($"	instance->Effect = 0;");
 		}
+		else if (effectName == "Blend") // Semi-Transparent
+		{
+			result.AppendLine($"	instance->Effect = 1;");
+		}
 		else if (effectName == "Invert")
 		{
 			result.AppendLine($"	instance->Effect = 2;");
@@ -39,11 +43,14 @@ public class SetEffectAction : ActionBase
 		}
 		else
 		{
-			var shader = Exporter.Instance.GameData.shaders.ShaderList.Values.FirstOrDefault(s => s.Name == effectName);
-			if (shader != null)
+			if (Exporter.Instance.GameData.shaders.ShaderList != null)
 			{
-				int id = shader != null ? Exporter.Instance.GameData.shaders.ShaderList.FirstOrDefault(x => x.Value == shader).Key : -1;
-				result.AppendLine($"	instance->effectInstance = EffectBank::CreateEffect_{StringUtils.SanitizeObjectName(effectName)}_{id}();");
+				var shader = Exporter.Instance.GameData.shaders.ShaderList.Values.FirstOrDefault(s => s.Name == effectName);
+				if (shader != null)
+				{
+					int id = shader != null ? Exporter.Instance.GameData.shaders.ShaderList.FirstOrDefault(x => x.Value == shader).Key : -1;
+					result.AppendLine($"	instance->effectInstance = EffectBank::CreateEffect_{StringUtils.SanitizeObjectName(effectName)}_{id}();");
+				}
 			}
 		}
 
