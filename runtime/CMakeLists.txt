@@ -128,6 +128,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(_DEBUG)
 endif()
 
+# Determine default for Debug UI
+set(DEBUG_UI_DEFAULT OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(DEBUG_UI_DEFAULT ON)
+endif()
+
 # Dear ImGui setup
 if(NOT EMSCRIPTEN)
     set(IMGUI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui")
@@ -183,6 +189,12 @@ elseif(WIN32 AND NOT EMSCRIPTEN)
 else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${IMGUI_SOURCES})
 endif()
+
+option(NUCLEAR_DEBUG_UI "Enable the in-application Debug UI Toggle" OFF)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    "$<$<OR:$<BOOL:${NUCLEAR_DEBUG_UI}>,$<CONFIG:Debug>>:NUCLEAR_DEBUG_UI>"
+)
 
 # Platform-specific linking
 if(NOT EMSCRIPTEN)

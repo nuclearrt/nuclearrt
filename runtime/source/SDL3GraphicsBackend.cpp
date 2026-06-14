@@ -12,7 +12,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 #include "DebugUI.h"
 #include "imgui.h"
 #include <imgui_impl_sdl3.h>
@@ -132,7 +132,7 @@ void SDL3GraphicsBackend::Initialize() {
 	logicalRenderHeight = gameHeight;
 	CreateRenderTarget(gameWidth, gameHeight);
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	DEBUG_UI.Initialize(window, glContext);
 
 	DEBUG_UI.AddWindow(Application::Instance().GetAppData()->GetAppName(), [this]()
@@ -232,7 +232,7 @@ void SDL3GraphicsBackend::Initialize() {
 
 void SDL3GraphicsBackend::Deinitialize()
 {
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	DEBUG_UI.Shutdown();
 #endif
 
@@ -406,7 +406,7 @@ void SDL3GraphicsBackend::BeginDrawing()
 	glViewport(0, 0, renderTargetWidth, renderTargetHeight);
 	drawingLayer = false;
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	DEBUG_UI.BeginFrame();
 #endif
 }
@@ -471,7 +471,7 @@ void SDL3GraphicsBackend::EndDrawing()
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glBindVertexArray(0);
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	DEBUG_UI.EndFrame();
 #endif
 
