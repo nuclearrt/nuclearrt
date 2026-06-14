@@ -101,6 +101,8 @@ std::string SDL3PlatformBackend::GetPlatformName()
 	return "Linux";
 #elif defined(PLATFORM_WEB)
 	return "Web";
+#elif defined(PLATFORM_IOS)
+	return "iOS";
 #else
 	return "Unknown";
 #endif

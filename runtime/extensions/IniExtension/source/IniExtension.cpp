@@ -8,6 +8,8 @@
 #include <windows.h>
 #include <shlobj.h>
 #include <KnownFolders.h>
+#elif defined(PLATFORM_IOS) && defined(NUCLEAR_BACKEND_SDL3)
+#include <SDL3/SDL_filesystem.h>
 #endif
 
 void IniExtension::Initialize()
@@ -192,6 +194,8 @@ std::filesystem::path IniExtension::GetPlatformSaveDirectory()
 	return std::filesystem::path();
 #elif defined(PLATFORM_WEB)
 	return std::filesystem::path("/disk/AppData/Roaming/NuclearApplications");
+#elif defined(PLATFORM_IOS)
+	return std::filesystem::path(SDL_GetPrefPath("NuclearApplications", "saves"));
 #else
 	return std::filesystem::path();
 #endif

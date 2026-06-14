@@ -1,11 +1,17 @@
 cmake_minimum_required(VERSION 3.14)
-project(nuclearrt-runtime CXX)
+project(nuclearrt-runtime C CXX)
 set(FRIENDLY_NAME "NuclearRT-Runtime")
+set(DOMAIN_NAME "com.nuclearrt.runtime")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(APPLE)
+    enable_language(OBJC)
+    enable_language(OBJCXX)
+endif()
+
+if(APPLE AND NOT IOS)
     set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures for macOS" FORCE)
 endif()
 
@@ -26,6 +32,12 @@ if (EMSCRIPTEN)
     set(SDLTTF_INSTALL OFF CACHE BOOL "" FORCE)
 
     add_link_options(-sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=2gb -sMAXIMUM_MEMORY=4096Mb -sSTACK_SIZE=1048576 -sOFFSCREENCANVAS_SUPPORT=1 -sFORCE_FILESYSTEM=1 -sEXIT_RUNTIME=1 -sASYNCIFY -lidbfs.js)
+endif()
+
+if(IOS)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    set(SDL_STATIC ON CACHE BOOL "" FORCE)
 endif()
 
 include(FetchContent)
@@ -91,18 +103,24 @@ if(WIN32 OR (UNIX AND NOT APPLE AND NOT EMSCRIPTEN))
     endif()
 endif()
 
-find_package(OpenGL REQUIRED)
+if(APPLE AND IOS)
+    find_library(OPENGLES_FRAMEWORK OpenGLES)
+else()
+    find_package(OpenGL REQUIRED)
+endif()
 
 add_compile_definitions(NUCLEAR_BACKEND_SDL3)
 
 if(WIN32)
     add_compile_definitions(PLATFORM_WINDOWS)
-elseif(APPLE)
+elseif(APPLE AND NOT EMSCRIPTEN AND NOT IOS)
     add_compile_definitions(PLATFORM_MACOS)
 elseif(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
     add_compile_definitions(PLATFORM_LINUX)
 elseif(EMSCRIPTEN)
     add_compile_definitions(PLATFORM_WEB)
+elseif (IOS)
+    add_compile_definitions(PLATFORM_IOS)
 endif()
 
 # Configure debug mode
@@ -143,17 +161,22 @@ file(GLOB_RECURSE HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
 
 # Create executable
 if(APPLE AND NOT EMSCRIPTEN)
+
+    #configure_file("${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in" "${CMAKE_CURRENT_BINARY_DIR}/Info.plist" @ONLY)
     add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${IMGUI_SOURCES})
     
     set_target_properties(${PROJECT_NAME} PROPERTIES
-        MACOSX_BUNDLE TRUE
+        #MACOSX_BUNDLE TRUE
         PRODUCT_NAME "${FRIENDLY_NAME}"
         MACOSX_BUNDLE_EXECUTABLE_NAME "${PROJECT_NAME}"
-        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in"
+        #MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_BINARY_DIR}/Info.plist"
         MACOSX_BUNDLE_BUNDLE_NAME "${FRIENDLY_NAME}"
         MACOSX_BUNDLE_BUNDLE_VERSION "1.0.0"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.nuclearrt.${PROJECT_NAME}"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "${DOMAIN_NAME}"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${DOMAIN_NAME}"
+        XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "YES"
+        XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "YES"
     )
 elseif(WIN32 AND NOT EMSCRIPTEN)
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${IMGUI_SOURCES} resources.rc)
@@ -201,21 +224,29 @@ if(EMSCRIPTEN)
     if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/copy/web")
         list(APPEND COPY_SOURCE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/copy/web")
     endif()
-elseif(WIN32 OR APPLE OR UNIX)
+elseif(WIN32 OR (APPLE AND NOT IOS) OR (UNIX AND NOT APPLE))
     if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/copy/desktop")
         list(APPEND COPY_SOURCE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/copy/desktop")
     endif()
 endif()
 
-if (APPLE AND NOT EMSCRIPTEN)
+if (APPLE AND NOT EMSCRIPTEN AND NOT IOS)
     if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/copy/mac")
         list(APPEND COPY_SOURCE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/copy/mac")
     endif()
 endif()
 
+if (APPLE AND IOS)
+    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/copy/mobile")
+        list(APPEND COPY_SOURCE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/copy/mobile")
+    endif()
+endif()
+
 # Set output destination based on platform
-if(APPLE AND NOT EMSCRIPTEN)
+if(APPLE AND NOT EMSCRIPTEN AND NOT IOS)
     set(COPY_DEST_DIR "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}>/Contents/Resources")
+elseif(APPLE AND IOS)
+    set(COPY_DEST_DIR "$<TARGET_BUNDLE_DIR:${PROJECT_NAME}>/www")
 elseif(MSVC)
     set(COPY_DEST_DIR "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 else()
@@ -224,22 +255,39 @@ endif()
 
 set(copy_dirs_commands "")
 foreach(source_dir IN LISTS COPY_SOURCE_DIRS)
-    list(APPEND copy_dirs_commands
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${source_dir}" "${COPY_DEST_DIR}")
+    if(NOT EMSCRIPTEN AND NOT IOS)
+        list(APPEND copy_dirs_commands
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${source_dir}" "${COPY_DEST_DIR}")
+    endif()
 endforeach()
 
-if(NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN AND NOT IOS)
     add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD
         ${copy_dirs_commands}
         COMMENT "Copying files from copy directory to build output"
     )
-else()
+elseif(EMSCRIPTEN)
     foreach(source_dir IN LISTS COPY_SOURCE_DIRS)
         target_link_options(${PROJECT_NAME} PRIVATE "SHELL:--embed-file \"${source_dir}@/\"")
     endforeach()
 
     target_link_options(${PROJECT_NAME} PRIVATE "SHELL:--shell-file \"${CMAKE_CURRENT_SOURCE_DIR}/web_shell.html\"")
+elseif(APPLE AND IOS)
+    set(IOS_RESOURCES "")
+
+    foreach(source_dir IN LISTS COPY_SOURCE_DIRS)
+        file(GLOB_RECURSE DIR_FILES
+            "${source_dir}/*"
+        )
+        list(APPEND IOS_RESOURCES ${DIR_FILES})
+    endforeach()
+
+    set_source_files_properties(${IOS_RESOURCES} PROPERTIES
+        MACOSX_PACKAGE_LOCATION "Resources"
+    )
+
+    target_sources(${PROJECT_NAME} PRIVATE ${IOS_RESOURCES})
 endif()
 
 #copy SDL3 dlls
@@ -274,6 +322,8 @@ if(WIN32 AND NOT EMSCRIPTEN)
     target_link_libraries(${PROJECT_NAME} PRIVATE winmm OpenGL::GL libglew_static)
 elseif(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
     target_link_libraries(${PROJECT_NAME} PRIVATE X11 OpenGL::GL libglew_static m pthread)
-elseif(APPLE AND NOT EMSCRIPTEN)
+elseif(APPLE AND NOT EMSCRIPTEN AND NOT IOS)
     target_link_libraries(${PROJECT_NAME} PRIVATE "-framework OpenGL")
+elseif (IOS)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENGLES_FRAMEWORK})
 endif()

@@ -11,7 +11,9 @@
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 
-#if defined(PLATFORM_MACOS)
+#if defined(PLATFORM_IOS)
+#include <OpenGLES/ES3/gl.h>
+#elif defined(PLATFORM_MACOS)
 #include <OpenGL/gl3.h>
 #else
 #include <GL/glew.h>
@@ -80,8 +82,15 @@ private:
 	int layerRenderTargetHeight = 0;
 	int renderTargetWidth = 0;
 	int renderTargetHeight = 0;
+	int logicalRenderWidth = 0;
+	int logicalRenderHeight = 0;
 	bool drawingLayer = false;
-	
+
+#if defined(PLATFORM_IOS)
+	GLuint drawableFramebuffer = 0;
+	GLuint drawableRenderbuffer = 0;
+#endif
+
 	static const int STANDARD_EFFECT_COUNT = 13;
 	EffectShader effectShaders[STANDARD_EFFECT_COUNT];
 	int currentEffect = -1;
@@ -115,6 +124,9 @@ private:
 	GLuint CreateShaderProgram(const char* vertexSrc, const char* fragmentSrc);
 	void CreateRenderTarget(int width, int height);
 	void CreateLayerRenderTarget(int width, int height);
+	void BindDefaultFramebuffer();
+	float GetPixelScale() const;
+	void GetNativeRenderTargetSize(int &width, int &height);
 	void RenderQuad(float x, float y, float w, float h, float angle = 0.0f, float pivotX = 0.0f, float pivotY = 0.0f, float u0 = 0.0f, float v0 = 0.0f, float u1 = 1.0f, float v1 = 1.0f);
 	void SetOrthoProjection(GLuint program, GLint mvpLoc, float width, float height);
 

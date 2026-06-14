@@ -128,9 +128,9 @@ public class PakBuilder
 
 	void BuildShaderPak(DirectoryInfo outputPath)
 	{
-		Dictionary<Tuple<string, string>, PakFile> shaderVersions = new Dictionary<Tuple<string, string>, PakFile>() {
-			{ Tuple.Create("gles300", "web"), new PakFile() },
-			{ Tuple.Create("gl330", "desktop"), new PakFile() }
+		Dictionary<Tuple<string, List<string>>, PakFile> shaderVersions = new Dictionary<Tuple<string, List<string>>, PakFile>() {
+			{ Tuple.Create("gles300", new List<string> { "web", "mobile" }), new PakFile() },
+			{ Tuple.Create("gl330", new List<string> { "desktop" }), new PakFile() }
 		};
 		var baseShaderFolder = new DirectoryInfo(Path.Combine(outputPath.FullName, "shaders"));
 		if (baseShaderFolder.Exists)
@@ -168,7 +168,10 @@ public class PakBuilder
 
 		foreach (var kv in shaderVersions)
 		{
-			kv.Value.Save(Path.Combine(outputPath.FullName, "copy", kv.Key.Item2, $"shaders-{kv.Key.Item1}.pak"));
+			foreach (var target in kv.Key.Item2)
+			{
+				kv.Value.Save(Path.Combine(outputPath.FullName, "copy", target, $"shaders-{kv.Key.Item1}.pak"));
+			}
 		}
 	}
 
