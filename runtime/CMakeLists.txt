@@ -23,7 +23,7 @@ function(include_dependency libName gitURL gitTag)
     FetchContent_MakeAvailable(${libName})
 endfunction()
 
-include(cmake/backend_sdl3.cmake)
+include(cmake/backend_sdl3_setup.cmake)
 
 include(cmake/debug.cmake)
 
