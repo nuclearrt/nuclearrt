@@ -60,7 +60,7 @@ public class PakBuilder
 		}
 
 		//sounds
-		foreach (var sound in mfaData.Sounds.Items)
+		foreach (var sound in gameData.Sounds.Items)
 		{
 			var entry = new PakEntry { Path = $"sounds/{sound.Handle}.{GetAudioExtension(sound.Data[0..4])}" };
 			entry.Size = (uint)sound.Data.Length;
@@ -115,12 +115,10 @@ public class PakBuilder
 	public string GetMainBankHash(CCNFileReader ccnReader, MFAFileReader mfaReader)
 	{
 		var gameData = ccnReader.getGameData();
-		var mfaData = mfaReader.getMfaData();
-
 		string hash = "";
 
 		hash += gameData.Images.bankHash;
-		hash += mfaData.Sounds.bankHash;
+		hash += gameData.Sounds.bankHash;
 		hash += gameData.Fonts.bankHash;
 
 		return hash;
