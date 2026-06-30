@@ -5,10 +5,10 @@
 #include "Active.h"
 
 void Movement::LookAtObject(ObjectInstance* targetObject, int xOffset, int yOffset) {
-	int targetX = targetObject->X + xOffset;
-	int targetY = targetObject->Y + yOffset;
-	int currentX = Instance->X;
-	int currentY = Instance->Y;
+	int targetX = targetObject->GetX() + xOffset;
+	int targetY = targetObject->GetY() + yOffset;
+	int currentX = Instance->GetX();
+	int currentY = Instance->GetY();
 
 	double dx = static_cast<double>(targetX - currentX);
 	double dy = static_cast<double>(targetY - currentY);
@@ -21,8 +21,8 @@ void Movement::LookAtObject(ObjectInstance* targetObject, int xOffset, int yOffs
 }
 
 void Movement::LookAtPoint(int x, int y) {
-	double dx = static_cast<double>(x - Instance->X);
-	double dy = static_cast<double>(y - Instance->Y);
+	double dx = static_cast<double>(x - Instance->GetX());
+	double dy = static_cast<double>(y - Instance->GetY());
 	double angleDeg = std::atan2(-dy, dx) * 180.0 / 3.14159265358979323846;
 	if (angleDeg < 0.0) angleDeg += 360.0;
 

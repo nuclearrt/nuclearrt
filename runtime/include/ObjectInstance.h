@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "CollisionInstanceBounds.h"
 #include "ObjectGlobalData.h"
 #include "EffectInstance.h"
 
@@ -24,10 +25,36 @@ public:
     unsigned int FixedValue = 0;
 private:
     unsigned int Angle = 0;
+    int x = 0;
+    int y = 0;
 public:
 
-	int X = 0;
-    int Y = 0;
+    int GetX() const {
+        return x;
+    }
+
+    int GetY() const {
+        return y;
+    }
+
+    void SetX(int x) {
+        if (x == this->x) return;
+        this->x = x;
+        collisionBoundsDirty = true;
+    }
+    void SetY(int y) {
+        if (y == this->y) return;
+        this->y = y;
+        collisionBoundsDirty = true;
+    }
+
+    void SetPosition(int x, int y) {
+        if (x == this->x && y == this->y) return;
+        this->x = x;
+        this->y = y;
+        collisionBoundsDirty = true;
+    }
+
     int RGBCoefficient = 0xFFFFFF;
     int Effect = 0;
     EffectInstance* effectInstance = nullptr;
@@ -36,6 +63,10 @@ public:
     
     bool global = false;
 	bool isSelected = false;
+    bool FollowFrame = false;
+
+    bool collisionBoundsDirty = true;
+    CollisionInstanceBounds collisionBounds = {0};
 private:
     unsigned char EffectParameter = 0;
 public:
@@ -56,7 +87,9 @@ public:
     void SetAngle(int angle) {
         angle %= 360;
         if (angle < 0) angle += 360;
+        if (angle == Angle) return;
         Angle = static_cast<unsigned int>(angle);
+        collisionBoundsDirty = true;
     }
 
     virtual ObjectGlobalData* CreateGlobalData() { return nullptr; };

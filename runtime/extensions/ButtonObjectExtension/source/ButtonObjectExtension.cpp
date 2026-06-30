@@ -18,8 +18,8 @@ void ButtonObjectExtension::Update(float deltaTime) {
 	auto input = Application::Instance().GetInput();
 	int mouseX = input->GetMouseX();
 	int mouseY = input->GetMouseY();
-	Hovered = (mouseX >= X && mouseX < X + Width &&
-				mouseY >= Y && mouseY < Y + Height) && Shown;
+	Hovered = (mouseX >= GetX() && mouseX < GetX() + Width &&
+				mouseY >= GetY() && mouseY < GetY() + Height) && Shown;
 	Clicked = Hovered && input->IsMouseButtonPressed(1, false) && Enabled;
 	HeldDown = Hovered && input->IsMouseButtonDown(1) && Enabled;
 
@@ -54,7 +54,7 @@ void ButtonObjectExtension::Draw() {
 			break;
 	}
 
-	Application::Instance().GetBackend()->graphics->DrawBitmap(bitmap, X, Y);
+	Application::Instance().GetBackend()->graphics->DrawBitmap(bitmap, GetX(), GetY());
 }
 
 void ButtonObjectExtension::ButtonDraw() {

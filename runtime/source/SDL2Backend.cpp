@@ -125,8 +125,8 @@ void SDL2Backend::Initialize() {
 				for (auto& instance : currentFrame->ObjectInstances) {					
 					if (ImGui::TreeNode(std::string(instance->OI->Name + "##" + std::to_string(i)).c_str())) {
 						ImGui::Text("Handle: %d", instance->Handle);
-						ImGui::Text("X: %d", instance->X);
-						ImGui::Text("Y: %d", instance->Y);
+						ImGui::Text("X: %d", instance->GetX());
+						ImGui::Text("Y: %d", instance->GetY());
 
 						if (ImGui::TreeNode("OI")) {
 							ImGui::Text("Handle: %d", instance->OI->Handle);
@@ -142,7 +142,7 @@ void SDL2Backend::Initialize() {
 
 					if (ImGui::IsItemHovered()) {
 						if (instance->Type != 0 && instance->Type != 1 && instance->Type != 2) {
-							DrawRectangle(instance->X, instance->Y, 32, 32, 0xFFFF0000);
+							DrawRectangle(instance->GetX(), instance->GetY(), 32, 32, 0xFFFF0000);
 						}
 						else {
 							unsigned int imageId = 0;
@@ -160,10 +160,10 @@ void SDL2Backend::Initialize() {
 							auto imageInfo = ImageBank::Instance().GetImage(imageId);
 
 							if (imageInfo) {
-								DrawRectangle(instance->X, instance->Y, imageInfo->Width, imageInfo->Height, 0xFFFF0000);
+								DrawRectangle(instance->GetX(), instance->GetY(), imageInfo->Width, imageInfo->Height, 0xFFFF0000);
 							}
 							else {
-								DrawRectangle(instance->X, instance->Y, 32, 32, 0xFFFF0000);
+								DrawRectangle(instance->GetX(), instance->GetY(), 32, 32, 0xFFFF0000);
 							}
 
 						}

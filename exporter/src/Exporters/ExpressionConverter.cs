@@ -252,16 +252,16 @@ public class ExpressionConverter
 			case 1: // Y Position
 				{
 					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append("instance->Y");
+						return stringBuilder.Append("instance->GetY()");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->Y : 0)");
+						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->GetY() : 0)");
 				}
 			case 11: // X Position
 				{
 					if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-						return stringBuilder.Append("instance->X");
+						return stringBuilder.Append("instance->GetX()");
 					else
-						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->X : 0)");
+						return stringBuilder.Append($"({objectSelector}->Count() > 0 ? (*{objectSelector}->begin())->GetX() : 0)");
 				}
 			case 13: // Flag(index)
 				{
@@ -403,16 +403,16 @@ public class ExpressionConverter
 				case 81: // XScale
 					{
 						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-							return stringBuilder.Append("((Active*)instance)->xScale");
+							return stringBuilder.Append("((Active*)instance)->GetXScale()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->xScale : 0)");
+							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->GetXScale() : 0)");
 					}
 				case 82: // YScale
 					{
 						if (expression.ObjectInfo == eventBase.ObjectInfo && expression.ObjectInfoList == eventBase.ObjectInfoList)
-							return stringBuilder.Append("((Active*)instance)->yScale");
+							return stringBuilder.Append("((Active*)instance)->GetYScale()");
 						else
-							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->yScale : 0)");
+							return stringBuilder.Append($"({objectSelector}->Count() > 0 ? ((Active*)*({objectSelector}->begin()))->GetYScale() : 0)");
 					}
 				case 83: // Angle
 					{

@@ -182,8 +182,8 @@ public:
 
     inline std::string NewLine() { return "\n"; }
 	int OAngle(ObjectInstance* instance, int xTarget, int yTarget) {
-		int distanceX  = xTarget - instance->X;
-		int distanceY  = yTarget - instance->Y;
+		int distanceX  = xTarget - instance->GetX();
+		int distanceY  = yTarget - instance->GetY();
 		int angle = static_cast<int>(atan2(-distanceY, distanceX) * 180 / 3.14159265358979323846);
 		angle = (angle + 360) % 360;
 		return angle;
@@ -197,8 +197,8 @@ public:
 	}
 
 	int ODistance(ObjectInstance* instance, int xTarget, int yTarget) {
-		int distanceX = xTarget - instance->X;
-		int distanceY = yTarget - instance->Y;
+		int distanceX = xTarget - instance->GetX();
+		int distanceY = yTarget - instance->GetY();
 		return static_cast<int>(sqrt(distanceX * distanceX + distanceY * distanceY));
 	}
 
@@ -297,12 +297,13 @@ public:
 	virtual void OnLoop(const std::string& loopName) {}
 
 	//Collision detection
+	CollisionInstanceBounds GetInstanceBounds(ObjectInstance* instance);
+	bool IsPointInRotatedBox(int worldX, int worldY, const CollisionInstanceBounds& bounds);
+	bool IsPixelSolid(const std::vector<uint8_t>& maskData, int width, int height, int x, int y);
+
 	bool IsCollidingWithBackground(ObjectInstance* instance);
 	bool IsColliding(ObjectInstance* instance1, ObjectInstance* instance2);
 	bool IsColliding(ObjectInstance* instance, int x, int y);
-
-	void ClearBoundsCache();
-
 private:
 	std::vector<unsigned int> instancesMarkedForDeletion;
 	std::vector<bool> ActiveGroups;
@@ -310,4 +311,5 @@ private:
 
 	int scrollX = 0;
 	int scrollY = 0;
+	bool scrollDirty = true;
 };

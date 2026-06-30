@@ -153,15 +153,15 @@ void EasingObjectExtension::Update(float deltaTime)
 
 			float easeStep = (float)CalculateEasingValue(moved.easingMode, moved.functionA, moved.functionB, step, moved.vars);
 
-			object->X = (int)(moved.startX + (moved.destX - moved.startX) * easeStep + 0.5f);
-			object->Y = (int)(moved.startY + (moved.destY - moved.startY) * easeStep + 0.5f);
+			object->SetX((int)(moved.startX + (moved.destX - moved.startX) * easeStep + 0.5f));
+			object->SetY((int)(moved.startY + (moved.destY - moved.startY) * easeStep + 0.5f));
 
 			if (finishedMoving)
 			{
 				finishedMoving = false;
 
-				object->X = moved.destX;
-				object->Y = moved.destY;
+				object->SetX(moved.destX);
+				object->SetY(moved.destY);
 
 				controlled.erase(controlled.begin() + i);
 				i--;
@@ -186,8 +186,8 @@ void EasingObjectExtension::MoveObject(ObjectInstance *instance, uint8_t easingM
 	}), controlled.end());
 
 	MoveStruct move;
-	move.startX = instance->X;
-	move.startY = instance->Y;
+	move.startX = instance->GetX();
+	move.startY = instance->GetY();
 	move.fixedValue = instance->FixedValue;
 	move.destX = x;
 	move.destY = y;

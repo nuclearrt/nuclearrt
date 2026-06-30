@@ -18,7 +18,6 @@ public:
 		: ObjectInstance(objectInfoHandle, type, name) {}
 
 	bool Visible = true;
-	bool FollowFrame = false;
 
 	AlterableValues Values;
 	AlterableStrings Strings;

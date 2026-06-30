@@ -14,13 +14,13 @@ void LayerObjectExtension::Initialize()
 void LayerObjectExtension::YSort(bool ascending)
 {
     auto& layer = Application::Instance().GetCurrentFrame().get()->Layers[currentLayer];
-    std::sort(layer.instances.begin(), layer.instances.end(), [ascending](ObjectInstance* a, ObjectInstance* b) { return ascending ? a->Y < b->Y : a->Y > b->Y; });
+    std::sort(layer.instances.begin(), layer.instances.end(), [ascending](ObjectInstance* a, ObjectInstance* b) { return ascending ? a->GetY() < b->GetY() : a->GetY() > b->GetY(); });
 }
 
 void LayerObjectExtension::XSort(bool ascending)
 {
     auto& layer = Application::Instance().GetCurrentFrame().get()->Layers[currentLayer];
-    std::sort(layer.instances.begin(), layer.instances.end(), [ascending](ObjectInstance* a, ObjectInstance* b) { return ascending ? a->X < b->X : a->X > b->X; });
+    std::sort(layer.instances.begin(), layer.instances.end(), [ascending](ObjectInstance* a, ObjectInstance* b) { return ascending ? a->GetX() < b->GetX() : a->GetX() > b->GetX(); });
 }
 
 void LayerObjectExtension::AltValueSort(bool ascending, int altIndex, int defaultValue)

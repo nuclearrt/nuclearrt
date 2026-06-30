@@ -11,7 +11,7 @@ public class CenterDisplayXAction : ActionBase
 	{
 		StringBuilder result = new StringBuilder();
 
-		eventBase.ObjectInfoList = -1; // TODO: im doing this because or else it will write it as an "SetScrollX(instance->X)" rather than "SetScrollX(player_selector->begin()->X)"
+		eventBase.ObjectInfoList = -1; // TODO: im doing this because or else it will write it as an "SetScrollX(instance->GetX())" rather than "SetScrollX(player_selector->begin()->X)"
 		result.AppendLine($"SetScroll{(eventBase.Num == 8 ? "X" : "Y")}({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 
 		return result.ToString();

@@ -22,12 +22,8 @@ public:
 	Movements movements;
 
 	bool Visible = true;
-	bool FollowFrame = false;
 	bool AutomaticRotation = false;
 	bool FineDetection = false;
-
-	float xScale = 1.0f;
-	float yScale = 1.0f;
 
 	std::vector<unsigned int> GetImagesUsed() override {
 		return animations.GetImagesUsed();
@@ -50,11 +46,11 @@ public:
 	}
 
 	int GetXActionPoint() const {
-		return X + animations.GetXActionPoint() - animations.GetXHotspot();
+		return GetX() + animations.GetXActionPoint() - animations.GetXHotspot();
 	}
 
 	int GetYActionPoint() const {
-		return Y + animations.GetYActionPoint() - animations.GetYHotspot();
+		return GetY() + animations.GetYActionPoint() - animations.GetYHotspot();
 	}
 
 	int GetWidth() const {
@@ -64,6 +60,29 @@ public:
 	int GetHeight() const {
 		return animations.GetHeight();
 	}
+
+	float GetXScale() const {
+		return xScale;
+	}
+
+	float GetYScale() const {
+		return yScale;
+	}
+
+	void SetXScale(float xScale) {
+		if (xScale == this->xScale) return;
+		this->xScale = xScale;
+		collisionBoundsDirty = true;
+	}
+	void SetYScale(float yScale) {
+		if (yScale == this->yScale) return;
+		this->yScale = yScale;
+		collisionBoundsDirty = true;
+	}
+
+private:
+	float xScale = 1.0f;
+	float yScale = 1.0f;
 };
 
  

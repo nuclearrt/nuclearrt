@@ -17,16 +17,14 @@ public class SetPositionAtAction : ActionBase
 		Position position = (Position)eventBase.Items[0].Loader;
 		if (position.ObjectInfoParent == ushort.MaxValue) // Absolute position
 		{
-			result.AppendLine($"    instance->X = {position.X};");
-			result.AppendLine($"    instance->Y = {position.Y};");
+			result.AppendLine($"    instance->SetPosition({position.X}, {position.Y});");
 		}
 		else // Relative position from object
 		{
 			//get the object
 			result.AppendLine($"    auto parent = {GetSelector((int)position.ObjectInfoParent, position.TypeParent)}->At(it.index());");
 			result.AppendLine($"    if (parent != nullptr) {{");
-			result.AppendLine($"        instance->X = {position.X} + parent->X;");
-			result.AppendLine($"        instance->Y = {position.Y} + parent->Y;");
+			result.AppendLine($"        instance->SetPosition({position.X} + parent->GetX(), {position.Y} + parent->GetY());");
 			result.AppendLine($"    }}");
 		}
 		result.AppendLine("}");

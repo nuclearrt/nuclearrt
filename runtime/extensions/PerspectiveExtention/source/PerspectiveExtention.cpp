@@ -285,5 +285,5 @@ void PerspectiveExtention::UpdateShaderParameters()
 
 void PerspectiveExtention::Draw()
 {
-    Application::Instance().GetBackend()->graphics->DrawEffectRect(X, Y, width, height, 0, 0, 0, effectInstance);
+    Application::Instance().GetBackend()->graphics->DrawEffectRect(GetX(), GetY(), width, height, 0, 0, 0, effectInstance);
 }

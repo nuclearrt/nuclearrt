@@ -17,8 +17,8 @@ public class SetScaleAction : ActionBase
 		if (eventBase.Items[0].Loader is ExpressionParameter expressionParameter) {
 			scale = ExpressionConverter.ConvertExpression(expressionParameter, eventBase);
 		}
-		result.AppendLine($"    ((Active*)instance)->xScale = {scale};");
-		result.AppendLine($"    ((Active*)instance)->yScale = {scale};");
+		result.AppendLine($"    ((Active*)instance)->SetXScale({scale});");
+		result.AppendLine($"    ((Active*)instance)->SetYScale({scale});");
 		result.AppendLine("}");
 
 		return result.ToString();
@@ -36,7 +36,7 @@ public class SetXScaleAction : ActionBase
 
 		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
-		result.AppendLine($"    ((Active*)instance)->xScale = {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)};");
+		result.AppendLine($"    ((Active*)instance)->SetXScale({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 		result.AppendLine("}");
 
 		return result.ToString();
@@ -54,7 +54,7 @@ public class SetYScaleAction : ActionBase
 
 		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
-		result.AppendLine($"    ((Active*)instance)->yScale = {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)};");
+		result.AppendLine($"    ((Active*)instance)->SetYScale({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 		result.AppendLine("}");
 
 		return result.ToString();

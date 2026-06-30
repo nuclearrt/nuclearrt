@@ -17,7 +17,6 @@ public:
 	int Height;
 
 	bool Visible = true;
-	bool FollowFrame = false;
 
 	std::vector<Paragraph> Paragraphs;
 

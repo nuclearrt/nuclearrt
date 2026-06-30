@@ -27,9 +27,9 @@ void Frame::PostInitialize()
 
 void Frame::Update()
 {
-	ClearBoundsCache();
 	float deltaTime = Application::Instance().GetBackend()->platform->GetTimeDelta();
 	GameTimer.Update(deltaTime);
+	scrollDirty = false;
 
 	for (auto& [handle, instance] : ObjectInstances)
 	{
@@ -127,26 +127,34 @@ void Frame::SetScroll(int x, int y, int layer)
 	x = std::min(Width - windowWidth, x);
 	y = std::min(Height - windowHeight, y);
 
+	if (x == scrollX && y == scrollY) return;
 	scrollX = x;
 	scrollY = y;
+	scrollDirty = true;
 }
 
 void Frame::SetScrollX(int x)
 {
+	if (x == scrollX) return;
 	int windowWidth = Application::Instance().GetAppData()->GetWindowWidth();
 	x -= windowWidth / 2;
 	x = std::max(0, x);
 	x = std::min(Width - windowWidth, x);
+	if (x == scrollX) return;
 	scrollX = x;
+	scrollDirty = true;
 }
 
 void Frame::SetScrollY(int y)
 {
+	if (y == scrollY) return;
 	int windowHeight = Application::Instance().GetAppData()->GetWindowHeight();
 	y -= windowHeight / 2;
 	y = std::max(0, y);
 	y = std::min(Height - windowHeight, y);
+	if (y == scrollY) return;
 	scrollY = y;
+	scrollDirty = true;
 }
 
 int Frame::GetXLeftEdge()
@@ -179,13 +187,13 @@ void Frame::DrawLayer(Layer& layer)
 			unsigned int imageId = ((Backdrop*)instance)->Image;
 
 			Application::Instance().GetBackend()->graphics->DrawTexture(
-				imageId, instance->X - (scrollX * layer.XCoefficient), instance->Y - (scrollY * layer.YCoefficient),
+				imageId, instance->GetX() - (scrollX * layer.XCoefficient), instance->GetY() - (scrollY * layer.YCoefficient),
 				0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
 		}
 		else if (instance->Type == 2)
 		{
 			if (!((Active*)instance)->Visible) continue;
-			if (((Active*)instance)->xScale <= 0.0f || ((Active*)instance)->yScale <= 0.0f) continue;
+			if (((Active*)instance)->GetXScale() <= 0.0f || ((Active*)instance)->GetYScale() <= 0.0f) continue;
 
 			auto& imageBank = ImageBank::Instance();
 			auto& animations = ((Active*)instance)->animations;
@@ -193,7 +201,7 @@ void Frame::DrawLayer(Layer& layer)
 
 			int scrollXOffset = 0;
 			int scrollYOffset = 0;
-			if (((Active*)instance)->FollowFrame)
+			if (instance->FollowFrame)
 			{
 				scrollXOffset = scrollX * layer.XCoefficient;
 				scrollYOffset = scrollY * layer.YCoefficient;
@@ -217,9 +225,9 @@ void Frame::DrawLayer(Layer& layer)
 				}
 
 				Application::Instance().GetBackend()->graphics->DrawTexture(
-					imageId, instance->X - scrollXOffset, instance->Y - scrollYOffset,
+					imageId, instance->GetX() - scrollXOffset, instance->GetY() - scrollYOffset,
 					imageInfo->HotspotX, imageInfo->HotspotY, 
-					angle, ((Active*)instance)->xScale, ((Active*)instance)->yScale, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
+					angle, ((Active*)instance)->GetXScale(), ((Active*)instance)->GetYScale(), instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
 			}
 		}
 		else if (instance->Type == 3) // Text
@@ -229,7 +237,7 @@ void Frame::DrawLayer(Layer& layer)
 			int scrollXOffset = 0;
 			int scrollYOffset = 0;
 
-			if (((StringObject*)instance)->FollowFrame)
+			if (instance->FollowFrame)
 			{
 				scrollXOffset = scrollX * layer.XCoefficient;
 				scrollYOffset = scrollY * layer.YCoefficient;
@@ -238,8 +246,8 @@ void Frame::DrawLayer(Layer& layer)
 			std::string text = ((StringObject*)instance)->GetText();
 			Application::Instance().GetBackend()->graphics->DrawText(
 				FontBank::Instance().GetFont(((StringObject*)instance)->GetFont()),
-				instance->X - scrollXOffset,
-				instance->Y - scrollYOffset,
+				instance->GetX() - scrollXOffset,
+				instance->GetY() - scrollYOffset,
 				((StringObject*)instance)->Width,
 				((StringObject*)instance)->Height,
 				((StringObject*)instance)->GetHorizontalAlignment(),
@@ -269,11 +277,11 @@ void Frame::DrawLayer(Layer& layer)
 			//TODO: Add support for other display types
 			if (counter->DisplayType == 1) // Numbers
 			{				
-				DrawCounterNumbers(counter, counter->GetValue(), instance->X - scrollXOffset, instance->Y - scrollYOffset);
+				DrawCounterNumbers(counter, counter->GetValue(), instance->GetX() - scrollXOffset, instance->GetY() - scrollYOffset);
 			}
 			else if (counter->DisplayType == 2 || counter->DisplayType == 3) // Bar
 			{
-				Application::Instance().GetBackend()->graphics->DrawCounterBar(instance->X - scrollXOffset, instance->Y - scrollYOffset, (Counter*)counter);
+				Application::Instance().GetBackend()->graphics->DrawCounterBar(instance->GetX() - scrollXOffset, instance->GetY() - scrollYOffset, (Counter*)counter);
 			}
 			else if (counter->DisplayType == 4) // Animation
 			{
@@ -282,13 +290,13 @@ void Frame::DrawLayer(Layer& layer)
 					int count = Application::Instance().GetAppData()->GetPlayerLives()[counter->Player];
 					int imageWidth = ImageBank::Instance().GetImage(counter->Frames[0])->Width;
 					int imageHeight = ImageBank::Instance().GetImage(counter->Frames[0])->Height;
-					int x = instance->X - scrollXOffset;
-					int y = instance->Y - scrollYOffset;
+					int x = instance->GetX() - scrollXOffset;
+					int y = instance->GetY() - scrollYOffset;
 					for (int i = 0; i < count; i++)
 					{
-						if (counter->Width > 0 && (x - (instance->X - scrollXOffset)) >= counter->Width)
+						if (counter->Width > 0 && (x - (instance->GetX() - scrollXOffset)) >= counter->Width)
 						{
-							x = instance->X - scrollXOffset; 
+							x = instance->GetX() - scrollXOffset; 
 							y += imageHeight;
 						}
 
@@ -321,7 +329,7 @@ void Frame::DrawLayer(Layer& layer)
 					
 					imageID = counter->Frames[frameIndex];
 
-					Application::Instance().GetBackend()->graphics->DrawTexture(imageID, instance->X - scrollXOffset, instance->Y - scrollYOffset, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
+					Application::Instance().GetBackend()->graphics->DrawTexture(imageID, instance->GetX() - scrollXOffset, instance->GetY() - scrollYOffset, 0, 0, 0, 1.0f, 1.0f, instance->RGBCoefficient, instance->Effect, instance->GetEffectParameter(), instance->effectInstance);
 				}
 			}
 		}
@@ -329,7 +337,7 @@ void Frame::DrawLayer(Layer& layer)
 		{
 			int scrollXOffset = scrollX * layer.XCoefficient;
 			int scrollYOffset = scrollY * layer.YCoefficient;
-			Application::Instance().GetBackend()->graphics->DrawQuickBackdrop(instance->X - scrollXOffset, instance->Y - scrollYOffset, ((QuickBackdrop*)instance)->Width, ((QuickBackdrop*)instance)->Height, &((QuickBackdrop*)instance)->shape);
+			Application::Instance().GetBackend()->graphics->DrawQuickBackdrop(instance->GetX() - scrollXOffset, instance->GetY() - scrollYOffset, ((QuickBackdrop*)instance)->Width, ((QuickBackdrop*)instance)->Height, &((QuickBackdrop*)instance)->shape);
 		}
 		else if (instance->Type >= 32) // Extension
 		{
@@ -471,8 +479,7 @@ std::vector<unsigned int> Frame::GetFontsUsed()
 ObjectInstance* Frame::CreateInstance(ObjectInstance* createdInstance, short x, short y, unsigned int layer, short instanceValue, unsigned int objectInfoHandle, short angle, bool postInitialize, ObjectInstance* parentInstance)
 {
 	createdInstance->Handle = ++MaxObjectInstanceHandle;
-	createdInstance->X = x;
-	createdInstance->Y = y;
+	createdInstance->SetPosition(x, y);
 	createdInstance->Layer = layer;
 	createdInstance->InstanceValue = instanceValue;
 	createdInstance->ObjectInfoHandle = objectInfoHandle;
@@ -492,8 +499,8 @@ ObjectInstance* Frame::CreateInstance(ObjectInstance* createdInstance, short x, 
 	
 	ObjectInstances[createdInstance->Handle] = createdInstance;
 	if (parentInstance) {
-		createdInstance->X += parentInstance->X;
-		createdInstance->Y += parentInstance->Y;
+		createdInstance->SetX(createdInstance->GetX() + parentInstance->GetX());
+		createdInstance->SetY(createdInstance->GetY() + parentInstance->GetY());
 		createdInstance->Layer = parentInstance->Layer;
 	}
 
@@ -718,169 +725,124 @@ bool Frame::IsCollidingWithBackground(ObjectInstance *instance)
 	return false; // No collision with any backdrop
 }
 
-struct CollisionInstanceBounds {
-	int minX, minY, maxX, maxY;
-	int width, height;
-	int centerX, centerY;
-	int angle;
-	unsigned int imageId;
-	int hotspotX, hotspotY;
-	int maskWidth, maskHeight;
-	float scaleX, scaleY;
-};
+CollisionInstanceBounds Frame::GetInstanceBounds(ObjectInstance* instance) {
+	if (instance->collisionBoundsDirty) {
+		CollisionInstanceBounds bounds{};
+		bounds.angle = instance->GetAngle();
+		bounds.scaleX = 1.0f;
+		bounds.scaleY = 1.0f;
 
-static std::unordered_map<Frame*, std::unordered_map<ObjectInstance*, CollisionInstanceBounds>> s_instanceBoundsCache;
+		unsigned int imageId = 0;
+		int drawX = instance->GetX();
+		int drawY = instance->GetY();
+		int hotspotX = 0, hotspotY = 0;
 
-void Frame::ClearBoundsCache() {
-	auto it = s_instanceBoundsCache.find(this);
-	if (it != s_instanceBoundsCache.end())
-		it->second.clear();
-}
-
-static CollisionInstanceBounds GetInstanceBounds(Frame* frame, ObjectInstance* instance, int scrollX, int scrollY) {
-	auto& cache = s_instanceBoundsCache[frame];
-	auto cit = cache.find(instance);
-	if (cit != cache.end())
-		return cit->second;
-
-	CollisionInstanceBounds bounds = {0};
-	bounds.angle = instance->GetAngle();
-	bounds.scaleX = 1.0f;
-	bounds.scaleY = 1.0f;
-	
-	unsigned int imageId = 0;
-	int drawX = 0, drawY = 0;
-	int hotspotX = 0, hotspotY = 0;
-	
-	if (instance->Type == 0) { // Quick backdrop
-		imageId = ((QuickBackdrop*)instance)->shape.Image;
-		drawX = instance->X - (scrollX * frame->Layers[instance->Layer].XCoefficient);
-		drawY = instance->Y - (scrollY * frame->Layers[instance->Layer].YCoefficient);
-		bounds.width = ((QuickBackdrop*)instance)->Width;
-		bounds.height = ((QuickBackdrop*)instance)->Height;
-		bounds.maskWidth = bounds.width;
-		bounds.maskHeight = bounds.height;
-	} else if (instance->Type == 1) { // Backdrop
-		imageId = ((Backdrop*)instance)->Image;
-		drawX = instance->X - (scrollX * frame->Layers[instance->Layer].XCoefficient);
-		drawY = instance->Y - (scrollY * frame->Layers[instance->Layer].YCoefficient);
-		auto imageInfo = ImageBank::Instance().GetImage(imageId);
-		if (imageInfo) {
-			bounds.width = imageInfo->Width;
-			bounds.height = imageInfo->Height;
-			bounds.maskWidth = imageInfo->Width;
-			bounds.maskHeight = imageInfo->Height;
-		}
-	}
-	else if (instance->Type == 3) { // String
-		StringObject* stringObj = (StringObject*)instance;
-		int scrollXOffset = 0, scrollYOffset = 0;
-		if (stringObj->FollowFrame)
-		{
-			scrollXOffset = scrollX * frame->Layers[instance->Layer].XCoefficient;
-			scrollYOffset = scrollY * frame->Layers[instance->Layer].YCoefficient;
-		}
-		drawX = instance->X - scrollXOffset;
-		drawY = instance->Y - scrollYOffset;
-
-		bounds.width = stringObj->Width;
-		bounds.height = stringObj->Height;
-		bounds.maskWidth = bounds.width;
-		bounds.maskHeight = bounds.height;
-	} else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) { // Counters
-		CounterBase* counter = (CounterBase*)instance;
-		int scrollXOffset = 0, scrollYOffset = 0;
-		if (counter->FollowFrame)
-		{
-			scrollXOffset = scrollX * frame->Layers[instance->Layer].XCoefficient;
-			scrollYOffset = scrollY * frame->Layers[instance->Layer].YCoefficient;
-		}
-		drawX = instance->X - scrollXOffset;
-		drawY = instance->Y - scrollYOffset;
-		if (counter)
-		{
+		if (instance->Type == 0) { // Quick backdrop
+			imageId = ((QuickBackdrop*)instance)->shape.Image;
+			bounds.width = ((QuickBackdrop*)instance)->Width;
+			bounds.height = ((QuickBackdrop*)instance)->Height;
+			bounds.maskWidth = bounds.width;
+			bounds.maskHeight = bounds.height;
+		} else if (instance->Type == 1) { // Backdrop
+			imageId = ((Backdrop*)instance)->Image;
+			auto imageInfo = ImageBank::Instance().GetImage(imageId);
+			if (imageInfo) {
+				bounds.width = imageInfo->Width;
+				bounds.height = imageInfo->Height;
+				bounds.maskWidth = imageInfo->Width;
+				bounds.maskHeight = imageInfo->Height;
+			}
+		} else if (instance->Type == 3) { // String
+			StringObject* stringObj = (StringObject*)instance;
+			bounds.width = stringObj->Width;
+			bounds.height = stringObj->Height;
+			bounds.maskWidth = bounds.width;
+			bounds.maskHeight = bounds.height;
+		} else if (instance->Type == 5 || instance->Type == 6 || instance->Type == 7) { // Counters
+			CounterBase* counter = (CounterBase*)instance;
 			bounds.width = counter->GetWidth();
 			bounds.height = counter->GetHeight();
 			bounds.maskWidth = bounds.width;
 			bounds.maskHeight = bounds.height;
 
-			if (counter->DisplayType == 1)
-			{
+			if (counter->DisplayType == 1) {
 				drawX -= bounds.width;
 				drawY -= bounds.height;
 			}
+		} else { // Active object
+			Active* active = (Active*)instance;
+			imageId = active->animations.GetCurrentImageHandle();
+			bounds.scaleX = active->GetXScale();
+			bounds.scaleY = active->GetYScale();
+			auto imageInfo = ImageBank::Instance().GetImage(imageId);
+			if (imageInfo) {
+				bounds.maskWidth = imageInfo->Width;
+				bounds.maskHeight = imageInfo->Height;
+				hotspotX = (int)std::lround(imageInfo->HotspotX * bounds.scaleX);
+				hotspotY = (int)std::lround(imageInfo->HotspotY * bounds.scaleY);
+				bounds.width = std::max((int)std::lround(imageInfo->Width * bounds.scaleX), 1);
+				bounds.height = std::max((int)std::lround(imageInfo->Height * bounds.scaleY), 1);
+			}
 		}
-	
-	} else { // Active object
-		Active* active = (Active*)instance;
-		imageId = active->animations.GetCurrentImageHandle();
-		bounds.scaleX = active->xScale;
-		bounds.scaleY = active->yScale;
-		int scrollXOffset = 0, scrollYOffset = 0;
-		if (active->FollowFrame) {
-			scrollXOffset = scrollX * frame->Layers[instance->Layer].XCoefficient;
-			scrollYOffset = scrollY * frame->Layers[instance->Layer].YCoefficient;
+
+		bounds.centerX = drawX;
+		bounds.centerY = drawY;
+		bounds.imageId = imageId;
+		bounds.hotspotX = hotspotX;
+		bounds.hotspotY = hotspotY;
+
+		int x1 = drawX - hotspotX;
+		int y1 = drawY - hotspotY;
+		int x2 = x1 + bounds.width;
+		int y2 = y1;
+		int x3 = x1;
+		int y3 = y1 + bounds.height;
+		int x4 = x2;
+		int y4 = y3;
+
+		if (bounds.angle != 0) {
+			float rotationAngle = 360.0f - bounds.angle;
+			float radians = rotationAngle * (PI / 180.0f);
+			float cosA = cos(radians);
+			float sinA = sin(radians);
+			float dx1 = x1 - bounds.centerX, dy1 = y1 - bounds.centerY;
+			float dx2 = x2 - bounds.centerX, dy2 = y2 - bounds.centerY;
+			float dx3 = x3 - bounds.centerX, dy3 = y3 - bounds.centerY;
+			float dx4 = x4 - bounds.centerX, dy4 = y4 - bounds.centerY;
+
+			x1 = bounds.centerX + (int)(dx1 * cosA - dy1 * sinA);
+			y1 = bounds.centerY + (int)(dx1 * sinA + dy1 * cosA);
+			x2 = bounds.centerX + (int)(dx2 * cosA - dy2 * sinA);
+			y2 = bounds.centerY + (int)(dx2 * sinA + dy2 * cosA);
+			x3 = bounds.centerX + (int)(dx3 * cosA - dy3 * sinA);
+			y3 = bounds.centerY + (int)(dx3 * sinA + dy3 * cosA);
+			x4 = bounds.centerX + (int)(dx4 * cosA - dy4 * sinA);
+			y4 = bounds.centerY + (int)(dx4 * sinA + dy4 * cosA);
 		}
-		drawX = instance->X - scrollXOffset;
-		drawY = instance->Y - scrollYOffset;
-		auto imageInfo = ImageBank::Instance().GetImage(imageId);
-		if (imageInfo) {
-			bounds.maskWidth = imageInfo->Width;
-			bounds.maskHeight = imageInfo->Height;
-			hotspotX = (int)std::lround(imageInfo->HotspotX * bounds.scaleX);
-			hotspotY = (int)std::lround(imageInfo->HotspotY * bounds.scaleY);
-			bounds.width = std::max((int)std::lround(imageInfo->Width * bounds.scaleX), 1);
-			bounds.height = std::max((int)std::lround(imageInfo->Height * bounds.scaleY), 1);
-		}
-	}
-	
-	bounds.centerX = drawX;
-	bounds.centerY = drawY;
-	bounds.imageId = imageId;
-	bounds.hotspotX = hotspotX;
-	bounds.hotspotY = hotspotY;
-	
-	int x1 = drawX - hotspotX;
-	int y1 = drawY - hotspotY;
-	int x2 = x1 + bounds.width;
-	int y2 = y1;
-	int x3 = x1;
-	int y3 = y1 + bounds.height;
-	int x4 = x2;
-	int y4 = y3;
-	
-	if (bounds.angle != 0) {
-		float rotationAngle = 360.0f - bounds.angle;
-		float radians = rotationAngle * (PI / 180.0f);
-		float cosA = cos(radians);
-		float sinA = sin(radians);
-		float dx1 = x1 - bounds.centerX, dy1 = y1 - bounds.centerY;
-		float dx2 = x2 - bounds.centerX, dy2 = y2 - bounds.centerY;
-		float dx3 = x3 - bounds.centerX, dy3 = y3 - bounds.centerY;
-		float dx4 = x4 - bounds.centerX, dy4 = y4 - bounds.centerY;
-		
-		x1 = bounds.centerX + (int)(dx1 * cosA - dy1 * sinA);
-		y1 = bounds.centerY + (int)(dx1 * sinA + dy1 * cosA);
-		x2 = bounds.centerX + (int)(dx2 * cosA - dy2 * sinA);
-		y2 = bounds.centerY + (int)(dx2 * sinA + dy2 * cosA);
-		x3 = bounds.centerX + (int)(dx3 * cosA - dy3 * sinA);
-		y3 = bounds.centerY + (int)(dx3 * sinA + dy3 * cosA);
-		x4 = bounds.centerX + (int)(dx4 * cosA - dy4 * sinA);
-		y4 = bounds.centerY + (int)(dx4 * sinA + dy4 * cosA);
+
+		bounds.minX = std::min({x1, x2, x3, x4});
+		bounds.minY = std::min({y1, y2, y3, y4});
+		bounds.maxX = std::max({x1, x2, x3, x4});
+		bounds.maxY = std::max({y1, y2, y3, y4});
+
+		instance->collisionBoundsDirty = false;
+		instance->collisionBounds = bounds;
 	}
 
-	bounds.minX = std::min({x1, x2, x3, x4});
-	bounds.minY = std::min({y1, y2, y3, y4});
-	bounds.maxX = std::max({x1, x2, x3, x4});
-	bounds.maxY = std::max({y1, y2, y3, y4});
-
-	cache[instance] = bounds;
-	return bounds;
+	CollisionInstanceBounds result = instance->collisionBounds;
+	result.scrollX = 0;
+	result.scrollY = 0;
+	if (instance->FollowFrame || instance->Type == 0 || instance->Type == 1) // Quick backdrop or backdrop
+	{
+		result.scrollX = scrollX * Layers[instance->Layer].XCoefficient;
+		result.scrollY = scrollY * Layers[instance->Layer].YCoefficient;
+	}
+	return result;
 }
 
-static bool IsPointInRotatedBox(int worldX, int worldY, const CollisionInstanceBounds& bounds) {
-	float dx = worldX - bounds.centerX;
-	float dy = worldY - bounds.centerY;
+bool Frame::IsPointInRotatedBox(int worldX, int worldY, const CollisionInstanceBounds& bounds) {
+	float dx = worldX - bounds.centerX + bounds.scrollX;
+	float dy = worldY - bounds.centerY + bounds.scrollY;
 	if (bounds.angle != 0) {
 		float rotationAngle = 360.0f - bounds.angle;
 		float radians = -rotationAngle * (PI / 180.0f);
@@ -896,7 +858,7 @@ static bool IsPointInRotatedBox(int worldX, int worldY, const CollisionInstanceB
 	return localX >= 0 && localX < bounds.width && localY >= 0 && localY < bounds.height;
 }
 
-static bool IsPixelSolid(const std::vector<uint8_t>& maskData, int width, int height, int x, int y) {
+bool Frame::IsPixelSolid(const std::vector<uint8_t>& maskData, int width, int height, int x, int y) {
 	if (x < 0 || x >= width || y < 0 || y >= height) return false;
 	
 	int bytesPerRow = (width + 7) / 8;
@@ -918,11 +880,11 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 	// Check if the objects are on the same layer
 	if (instance1->Layer != instance2->Layer) return false;
 
-	CollisionInstanceBounds bounds1 = GetInstanceBounds(this, instance1, scrollX, scrollY);
-	CollisionInstanceBounds bounds2 = GetInstanceBounds(this, instance2, scrollX, scrollY);
+	CollisionInstanceBounds bounds1 = GetInstanceBounds(instance1);
+	CollisionInstanceBounds bounds2 = GetInstanceBounds(instance2);
 	
-	if (bounds1.maxX < bounds2.minX || bounds1.minX > bounds2.maxX ||
-		bounds1.maxY < bounds2.minY || bounds1.minY > bounds2.maxY)
+	if (bounds1.maxX - bounds1.scrollX < bounds2.minX - bounds2.scrollX || bounds1.minX - bounds1.scrollX > bounds2.maxX - bounds2.scrollX ||
+		bounds1.maxY - bounds1.scrollY < bounds2.minY - bounds2.scrollY || bounds1.minY - bounds1.scrollY > bounds2.maxY - bounds2.scrollY)
 		return false;
 
 	unsigned int imageId1 = 0, imageId2 = 0;
@@ -957,10 +919,10 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 	auto imageInfo1 = ImageBank::Instance().GetImage(imageId1);
 	auto imageInfo2 = ImageBank::Instance().GetImage(imageId2);
 	if (!imageInfo1 || !imageInfo2) {
-		int overlapMinX = std::max(bounds1.minX, bounds2.minX);
-		int overlapMinY = std::max(bounds1.minY, bounds2.minY);
-		int overlapMaxX = std::min(bounds1.maxX, bounds2.maxX);
-		int overlapMaxY = std::min(bounds1.maxY, bounds2.maxY);
+		int overlapMinX = std::max(bounds1.minX - bounds1.scrollX, bounds2.minX - bounds2.scrollX);
+		int overlapMinY = std::max(bounds1.minY - bounds1.scrollY, bounds2.minY - bounds2.scrollY);
+		int overlapMaxX = std::min(bounds1.maxX - bounds1.scrollX, bounds2.maxX - bounds2.scrollX);
+		int overlapMaxY = std::min(bounds1.maxY - bounds1.scrollY, bounds2.maxY - bounds2.scrollY);
 		for (int py = overlapMinY; py <= overlapMaxY; py++)
 			for (int px = overlapMinX; px <= overlapMaxX; px++)
 				if (IsPointInRotatedBox(px, py, bounds1) && IsPointInRotatedBox(px, py, bounds2))
@@ -997,14 +959,14 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 		sin2 = sin(radians);
 	}
 	
-	int overlapMinX = std::max(bounds1.minX, bounds2.minX);
-	int overlapMinY = std::max(bounds1.minY, bounds2.minY);
-	int overlapMaxX = std::min(bounds1.maxX, bounds2.maxX);
-	int overlapMaxY = std::min(bounds1.maxY, bounds2.maxY);
+	int overlapMinX = std::max(bounds1.minX - bounds1.scrollX, bounds2.minX - bounds2.scrollX);
+	int overlapMinY = std::max(bounds1.minY - bounds1.scrollY, bounds2.minY - bounds2.scrollY);
+	int overlapMaxX = std::min(bounds1.maxX - bounds1.scrollX, bounds2.maxX - bounds2.scrollX);
+	int overlapMaxY = std::min(bounds1.maxY - bounds1.scrollY, bounds2.maxY - bounds2.scrollY);
 	
 	for (int py = overlapMinY; py <= overlapMaxY; py++) {
 		for (int px = overlapMinX; px <= overlapMaxX; px++) {
-			float dx1 = px - bounds1.centerX, dy1 = py - bounds1.centerY;
+			float dx1 = px - bounds1.centerX + bounds1.scrollX, dy1 = py - bounds1.centerY + bounds1.scrollY;
 			if (bounds1.angle != 0) {
 				float nx = dx1 * cos1 - dy1 * sin1, ny = dx1 * sin1 + dy1 * cos1;
 				dx1 = nx; dy1 = ny;
@@ -1015,7 +977,7 @@ bool Frame::IsColliding(ObjectInstance *instance1, ObjectInstance *instance2)
 			bool solid1 = useMask1 ? IsPixelSolid(*maskData1, width1, height1, sampleX1, sampleY1)
 				: (lx1 >= 0 && lx1 < bounds1.width && ly1 >= 0 && ly1 < bounds1.height);
 
-			float dx2 = px - bounds2.centerX, dy2 = py - bounds2.centerY;
+			float dx2 = px - bounds2.centerX + bounds2.scrollX, dy2 = py - bounds2.centerY + bounds2.scrollY;
 			if (bounds2.angle != 0) {
 				float nx = dx2 * cos2 - dy2 * sin2, ny = dx2 * sin2 + dy2 * cos2;
 				dx2 = nx; dy2 = ny;
@@ -1039,8 +1001,8 @@ bool Frame::IsColliding(ObjectInstance *instance, int x, int y)
 	x -= scrollX;
 	y -= scrollY;
 
-	CollisionInstanceBounds bounds = GetInstanceBounds(this, instance, scrollX, scrollY);
-	if (x < bounds.minX || x > bounds.maxX || y < bounds.minY || y > bounds.maxY)
+	CollisionInstanceBounds bounds = GetInstanceBounds(instance);
+	if (x < bounds.minX - bounds.scrollX || x > bounds.maxX - bounds.scrollX || y < bounds.minY - bounds.scrollY || y > bounds.maxY - bounds.scrollY)
 		return false;
 
 	unsigned int imageId = 0;
@@ -1077,8 +1039,8 @@ bool Frame::IsColliding(ObjectInstance *instance, int x, int y)
 		height = ((QuickBackdrop*)instance)->Height;
 	}
 
-	float dx = x - bounds.centerX;
-	float dy = y - bounds.centerY;
+	float dx = x - bounds.centerX + bounds.scrollX;
+	float dy = y - bounds.centerY + bounds.scrollY;
 	if (bounds.angle != 0) {
 		float radians = -(360.0f - bounds.angle) * (PI / 180.0f);
 		float cosA = cos(radians);

@@ -20,7 +20,7 @@ public class CenterDisplayAtAction : ActionBase
 		{
 			result.AppendLine($"for (ObjectIterator it(*{GetSelector((int)position.ObjectInfoParent, position.TypeParent)}); !it.end(); ++it) {{");
 			result.AppendLine($"    auto parent = *it;");
-			result.AppendLine($"    SetScroll({position.X} + parent->X, {position.Y} + parent->Y, parent->Layer);");
+			result.AppendLine($"    SetScroll({position.X} + parent->GetX(), {position.Y} + parent->GetY(), parent->Layer);");
 			result.AppendLine("}");
 		}
 

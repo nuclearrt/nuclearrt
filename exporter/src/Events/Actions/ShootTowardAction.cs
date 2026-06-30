@@ -33,8 +33,8 @@ public class ShootTowardAction : ActionBase
 			}
 			else // shoot toward x/y
 			{
-				result.AppendLine($"    targetX += ((Active*)*targetInstance)->X;");
-				result.AppendLine($"    targetY += ((Active*)*targetInstance)->Y;");
+				result.AppendLine($"    targetX += ((Active*)*targetInstance)->GetX();");
+				result.AppendLine($"    targetY += ((Active*)*targetInstance)->GetY();");
 			}
 
 		}
@@ -45,8 +45,8 @@ public class ShootTowardAction : ActionBase
 
 
 		result.AppendLine($"    int shootDirection = 0;");
-		result.AppendLine($"    double dx = static_cast<double>(targetX - newCreatedInstance->X);");
-		result.AppendLine($"    double dy = static_cast<double>(targetY - newCreatedInstance->Y);");
+		result.AppendLine($"    double dx = static_cast<double>(targetX - newCreatedInstance->GetX());");
+		result.AppendLine($"    double dy = static_cast<double>(targetY - newCreatedInstance->GetY());");
 		result.AppendLine($"    double angle = std::atan2(-dy, dx);");
 		result.AppendLine($"    shootDirection = (int)std::round(angle * (32.0 / (2.0 * 3.14159265358979323846)));");
 		result.AppendLine($"    shootDirection = shootDirection & 31;");

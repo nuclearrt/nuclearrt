@@ -32,8 +32,8 @@ void BulletMovement::Update(float deltaTime)
 	float xDifference = speed * deltaTime * cos(movementDirection * 3.14159265358979323846f / 16);
 	float yDifference = -speed * deltaTime * sin(movementDirection * 3.14159265358979323846f / 16);
 
-	Instance->X += xDifference;
-	Instance->Y += yDifference;
+	Instance->SetX(Instance->GetX() + xDifference);
+	Instance->SetY(Instance->GetY() + yDifference);
 
 	if (!((Active*)Instance)->AutomaticRotation ) {
 		((Active*)Instance)->animations.SetCurrentDirection(movementDirection);

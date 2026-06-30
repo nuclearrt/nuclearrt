@@ -183,7 +183,7 @@ void SDL3GraphicsBackend::Initialize() {
 				for (auto& [handle, instance] : currentFrame->ObjectInstances) {					
 					if (ImGui::TreeNode(std::string(instance->Name + "##" + std::to_string(handle)).c_str())) {
 						ImGui::Text("Handle: %d", handle);
-						ImGui::Text("Position: %d, %d", instance->X, instance->Y);
+						ImGui::Text("Position: %d, %d", instance->GetX(), instance->GetY());
 						ImGui::Text("Type: %d", instance->Type);
 
 						if (instance->Type == 2)

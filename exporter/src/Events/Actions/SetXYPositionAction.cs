@@ -13,7 +13,7 @@ public class SetXPositionAction : ActionBase
 
 		result.AppendLine($"for (ObjectIterator it(*{GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
-		result.AppendLine($"    instance->{(eventBase.Num == 2 ? "X" : "Y")} = {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)};");
+		result.AppendLine($"    instance->Set{(eventBase.Num == 2 ? "X" : "Y")}({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[0].Loader, eventBase)});");
 		result.AppendLine("}");
 
 		return result.ToString();
