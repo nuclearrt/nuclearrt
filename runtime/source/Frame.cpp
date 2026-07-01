@@ -697,10 +697,8 @@ void Frame::ApplyGlobalObjectData(std::vector<ObjectGlobalData*> savedData)
 bool Frame::IsCollidingWithBackground(ObjectInstance *instance)
 {	
 	// Check collision with all backdrop objects
-	for (auto& [handle, backdropInstance] : ObjectInstances)
+	for (auto& backdropInstance : Layers[instance->Layer].instances)
 	{
-		if (backdropInstance->Layer != instance->Layer) continue;
-
 		// Check only against (Quick) backdrop objects
 		if (backdropInstance->Type == 1)
 		{
