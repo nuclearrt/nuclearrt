@@ -62,7 +62,7 @@ public class PakBuilder
 		//sounds
 		foreach (var sound in gameData.Sounds.Items)
 		{
-			var entry = new PakEntry { Path = $"sounds/{sound.Handle}.{GetAudioExtension(sound.Data[0..4])}" };
+			var entry = new PakEntry { Path = $"sounds/{sound.Handle-1}.{GetAudioExtension(sound.Data[0..4])}" };
 			entry.Size = (uint)sound.Data.Length;
 			entry.Data = sound.Data;
 			mainPak.AddEntry(entry);
