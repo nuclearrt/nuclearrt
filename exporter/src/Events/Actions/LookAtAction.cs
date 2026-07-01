@@ -19,8 +19,8 @@ public class LookAtAction : ActionBase
 			result.AppendLine($"    ((Active*)instance)->movements.GetCurrentMovement()->LookAtPoint({position.X}, {position.Y});");
 		}
 		else {
-			result.AppendLine($"    auto parent = *({GetSelector((int)position.ObjectInfoParent, position.TypeParent)}->begin());");
-			result.AppendLine($"    if (parent != nullptr) {{");
+			result.AppendLine($"    if ({GetSelector((int)position.ObjectInfoParent, position.TypeParent)}->Count() > 0) {{");
+			result.AppendLine($"        auto parent = *({GetSelector((int)position.ObjectInfoParent, position.TypeParent)}->begin());");
 			result.AppendLine($"        ((Active*)instance)->movements.GetCurrentMovement()->LookAtObject(parent, {position.X}, {position.Y});");
 			result.AppendLine($"    }}");
 		}
