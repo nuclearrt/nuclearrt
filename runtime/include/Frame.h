@@ -315,7 +315,7 @@ public:
 	void StartLoop(const std::string& name, int count) {
 		std::string key = ToLowerStr(name);
 		activeLoops[key] = {true, 0};
-		while (activeLoops[key].running && activeLoops[key].index < count) {
+		while (activeLoops[key].running && (activeLoops[key].index < count || count < 0)) {
 			OnLoop(name);
 			if (!activeLoops[key].running) break;
 			activeLoops[key].index++;
