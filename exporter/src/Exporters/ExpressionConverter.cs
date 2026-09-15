@@ -125,7 +125,7 @@ public class ExpressionConverter
 		{ (ObjectType.System, 22), _ => "StringLength(" }, // String Length
 	  	{ (ObjectType.System, 23), e => $"CValue({(e.Loader as DoubleExp).FloatValue})" },
 		{ (ObjectType.System, 24), e => $"Application::Instance().GetAppData()->GetGlobalValue({GetGlobalValueIndex(e.Loader as GlobalCommon)})" }, // Global Value
-		{ (ObjectType.System, 28), _ => "std::trunc(" }, // Int
+		{ (ObjectType.System, 28), _ => "MathHelper::Trunc(" }, // Int
 		{ (ObjectType.System, 29), _ => "MathHelper::Abs(" }, // Abs(
 		{ (ObjectType.System, 30), _ => "std::ceil(" }, // Ceil
 		{ (ObjectType.System, 31), _ => "MathHelper::Floor(" }, // Floor

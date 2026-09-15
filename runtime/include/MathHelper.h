@@ -78,6 +78,7 @@ namespace MathHelper {
     inline CValue Abs(const CValue& v) { return CValue(std::abs(v.GetDoubleValue())); }
     inline CValue Round(const CValue& v) { return CValue(std::round(v.GetDoubleValue())); }
     inline CValue Floor(const CValue& v) { return CValue(std::floor(v.GetDoubleValue())); }
+    inline CValue Trunc(const CValue& v) { return CValue(std::trunc(v.GetDoubleValue())); }
 
     inline CValue ToValue(const CValue& v) {
         if (v.GetType() != CValue::TYPE_STRING)
