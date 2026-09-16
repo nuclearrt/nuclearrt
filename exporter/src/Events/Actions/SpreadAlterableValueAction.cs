@@ -12,7 +12,7 @@ public class SpreadAlterableValueAction : ActionBase
 		StringBuilder result = new();
 
 		result.AppendLine($"{{");
-		result.AppendLine($"	int currentValue = {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)};");
+		result.AppendLine($"	int currentValue = ({ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}).GetIntValue();");
 		result.AppendLine($"	for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"		auto instance = *it;");
 		result.AppendLine($"		(({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, eventBase.ObjectType)}*)instance)->Values.SetValue({((AlterableValue)eventBase.Items[0].Loader).Value}, currentValue);");
