@@ -6,6 +6,7 @@
 #include <cmath>
 #include <string>
 #include <algorithm>
+#include <type_traits>
 
 namespace MathHelper {
     
@@ -36,6 +37,11 @@ namespace MathHelper {
     const SafeDivision& GetSafeDivision();
 
 
+    inline double AsDouble(double v) { return v; }
+    inline double AsDouble(float v) { return static_cast<double>(v); }
+    inline double AsDouble(int v) { return static_cast<double>(v); }
+    inline double AsDouble(const CValue& v) { return v.GetDoubleValue(); }
+
     template<typename T>
     struct PowResult {
         T lhs;
@@ -43,7 +49,11 @@ namespace MathHelper {
 
         template<typename TR>
         auto operator/(TR rhs) const {
-            return std::pow(lhs, rhs);
+            double result = std::pow(AsDouble(lhs), AsDouble(rhs));
+            if constexpr (std::is_same_v<std::decay_t<T>, CValue> || std::is_same_v<std::decay_t<TR>, CValue>)
+                return CValue(result);
+            else
+                return result;
         }
     };
 
@@ -78,7 +88,10 @@ namespace MathHelper {
     inline CValue Abs(const CValue& v) { return CValue(std::abs(v.GetDoubleValue())); }
     inline CValue Round(const CValue& v) { return CValue(std::round(v.GetDoubleValue())); }
     inline CValue Floor(const CValue& v) { return CValue(std::floor(v.GetDoubleValue())); }
+    inline CValue Ceil(const CValue& v) { return CValue(std::ceil(v.GetDoubleValue())); }
     inline CValue Trunc(const CValue& v) { return CValue(std::trunc(v.GetDoubleValue())); }
+    inline CValue Min(const CValue& a, const CValue& b) { return CValue(std::min(a.GetDoubleValue(), b.GetDoubleValue())); }
+    inline CValue Max(const CValue& a, const CValue& b) { return CValue(std::max(a.GetDoubleValue(), b.GetDoubleValue())); }
 
     inline CValue ToValue(const CValue& v) {
         if (v.GetType() != CValue::TYPE_STRING)

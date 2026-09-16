@@ -127,7 +127,7 @@ public class ExpressionConverter
 		{ (ObjectType.System, 24), e => $"Application::Instance().GetAppData()->GetGlobalValue({GetGlobalValueIndex(e.Loader as GlobalCommon)})" }, // Global Value
 		{ (ObjectType.System, 28), _ => "MathHelper::Trunc(" }, // Int
 		{ (ObjectType.System, 29), _ => "MathHelper::Abs(" }, // Abs(
-		{ (ObjectType.System, 30), _ => "std::ceil(" }, // Ceil
+		{ (ObjectType.System, 30), _ => "MathHelper::Ceil(" }, // Ceil
 		{ (ObjectType.System, 31), _ => "MathHelper::Floor(" }, // Floor
 		{ (ObjectType.System, 32), _ => "MathHelper::ACos(" }, // ACos
 		{ (ObjectType.System, 33), _ => "MathHelper::ASin(" }, // ASin
@@ -137,8 +137,8 @@ public class ExpressionConverter
 		{ (ObjectType.System, 37), _ => "\"\"" }, // Dropped File Path$(index) // TODO
 		{ (ObjectType.System, 38), _ => "\"\"" }, // Command Line$ // TODO
 		{ (ObjectType.System, 39), _ => "\"\"" }, // Command Item$ // TODO
-		{ (ObjectType.System, 40), _ => "std::min(" }, // Min(
-		{ (ObjectType.System, 41), _ => "std::max(" }, // Max(
+		{ (ObjectType.System, 40), _ => "MathHelper::Min(" }, // Min(
+		{ (ObjectType.System, 41), _ => "MathHelper::Max(" }, // Max(
 		{ (ObjectType.System, 42), _ => "MathHelper::GetRGB(" }, // GetRGB
 		{ (ObjectType.System, 43), _ => "MathHelper::GetRed(" }, // GetRed
 		{ (ObjectType.System, 44), _ => "MathHelper::GetGreen(" }, // GetGreen
