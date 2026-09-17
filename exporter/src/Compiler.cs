@@ -2,6 +2,8 @@ using System.Diagnostics;
 
 public class Compiler
 {
+        private static readonly string CMakePath = @"C:\Program Files\CMake\bin\cmake.exe";
+
 	public void Compile(BuildType buildType, DirectoryInfo outputPath)
 	{
 		if (buildType == BuildType.SourceCode) return;
@@ -13,7 +15,7 @@ public class Compiler
 			buildDir.Create();
 
 			CTFAK.Utils.Logger.Log($"Running CMake to generate the project files...");
-			ProcessStartInfo cmakeProjectInfo = new ProcessStartInfo("cmake", "../..");
+			ProcessStartInfo cmakeProjectInfo = new ProcessStartInfo(CMakePath, "../..");
 			cmakeProjectInfo.WorkingDirectory = Path.Combine(outputPath.FullName, "build", "windows");
 			cmakeProjectInfo.CreateNoWindow = true;
 			cmakeProjectInfo.UseShellExecute = false;
@@ -42,7 +44,7 @@ public class Compiler
 			}
 
 			CTFAK.Utils.Logger.Log($"Building...");
-			ProcessStartInfo buildInfo = new ProcessStartInfo("cmake", "--build . --config " + (buildType == BuildType.WindowsDebug ? "Debug" : "Release"));
+			ProcessStartInfo buildInfo = new ProcessStartInfo(CMakePath, "--build . --config " + (buildType == BuildType.WindowsDebug ? "Debug" : "Release"));
 			buildInfo.WorkingDirectory = Path.Combine(outputPath.FullName, "build", "windows");
 			buildInfo.CreateNoWindow = true;
 			buildInfo.UseShellExecute = false;
