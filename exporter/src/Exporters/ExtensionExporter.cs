@@ -20,6 +20,7 @@ public static class ExtensionExporterRegistry
 		new EasingObjectExporter(),
 		new XBOXGamepadExporter(),
 		new CrasherExporter(),
+		new ArrayExporter(),
 	];
 
 	public static ExtensionExporter GetExporter(string extensionName)
