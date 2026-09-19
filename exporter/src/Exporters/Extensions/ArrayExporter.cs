@@ -89,6 +89,12 @@ public class ArrayExporter : ExtensionExporter
 			case 8: // Clear
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->Data->Clear();");
 				break;
+			case 9: // Load
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->Data->Load({EvaluateExpression(eventBase, 0)}.GetStringValue());");
+				break;
+			case 11: // Save
+				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->Data->Save({EvaluateExpression(eventBase, 0)}.GetStringValue());");
+				break;
 			case 13: // Write Value at X
 			case 16: // Write String at X
 				result.AppendLine($"{GetExtensionInstance(eventBase.ObjectInfo, eventBase.ObjectType)}->Data->WriteX({EvaluateExpression(eventBase, 1)}, {EvaluateExpression(eventBase, 0)});");

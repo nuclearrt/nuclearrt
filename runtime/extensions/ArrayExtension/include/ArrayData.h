@@ -13,7 +13,7 @@ public:
     bool IsStringArray() const { return (flags & 0x0002) != 0; }
     bool IsIndexBase1() const { return (flags & 0x0004) != 0; }
 
-    int GetBaseOffset() const { return IsIndexBase1() ? 0 : 1; }
+    int GetBaseOffset() const { return IsIndexBase1() ? 1 : 0; }
 
     void SetIndexA(const CValue& index) { currentIndexX = index.GetIntValue() - GetBaseOffset(); }
     void SetIndexB(const CValue& index) { currentIndexY = index.GetIntValue() - GetBaseOffset(); }
@@ -25,6 +25,9 @@ public:
 
     void Clear();
     void Expand(int newDimensionX, int newDimensionY, int newDimensionZ);
+
+    void Save(const std::string& fileName);
+    void Load(const std::string& fileName);
 
     void WriteValueAtIndex(const CValue& value) { WriteXYZ(CValue(currentIndexX), CValue(currentIndexY), CValue(currentIndexZ), value); }
 
@@ -50,6 +53,8 @@ public:
     CValue GetYDimension() { return CValue(dimensionY); }
     CValue GetZDimension() { return CValue(dimensionZ); }
 
+    std::string GetNormalizedPath(const std::string& path);
+
 private:
     int dimensionX;
     int dimensionY;
@@ -61,5 +66,5 @@ private:
     int currentIndexZ = 0;
 
     std::vector<int> intData;
-    std::vector<std::string> stringData;
+    std::vector<std::wstring> stringData;
 };
