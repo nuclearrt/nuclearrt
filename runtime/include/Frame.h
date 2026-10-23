@@ -361,12 +361,40 @@ public:
 		return Loopindex(name.GetStringValue());
 	}
 
+	static inline int CounterImageIndex(char c)
+	{
+		if (c >= '0' && c <= '9') return c - '0';  // 0..9
+		switch (c) {
+		case '-': return 10;
+		case '+': return 11;
+		case '.': return 12;
+		case 'e': return 13;
+		}
+		return -1; // unknown
+	}
+
 	virtual void OnLoop(const std::string& loopName) {}
 	virtual void OnTimerEvent(const std::string& eventName) {}
 	virtual void GenerateEvent(int objectType, int conditionNum, ObjectInstance* source = nullptr) {}
 
 	//Collision detection
 	CollisionInstanceBounds GetInstanceBounds(ObjectInstance* instance);
+	inline bool IsRotatedOutsideView(ObjectInstance* instance, int offsetX, int offsetY, int viewWidth, int viewHeight) {
+		CollisionInstanceBounds bounds = GetInstanceBounds(instance);
+		int dx = std::max<int>(bounds.hotspotX, bounds.width - bounds.hotspotX);
+		int dy = std::max<int>(bounds.hotspotY, bounds.height - bounds.hotspotY);
+		int radius = (int)std::ceil(std::sqrt((double)dx * dx + (double)dy * dy));
+		int cx = bounds.centerX - offsetX;
+		int cy = bounds.centerY - offsetY;
+
+		return cx + radius < 0 || cx - radius > viewWidth ||
+			cy + radius < 0 || cy - radius > viewHeight;
+	};
+	inline bool IsOutsideView(ObjectInstance* instance, int offsetX, int offsetY, int viewWidth, int viewHeight) {
+		CollisionInstanceBounds bounds = GetInstanceBounds(instance);
+		return bounds.maxX - offsetX < 0 || bounds.minX - offsetX > viewWidth ||
+			bounds.maxY - offsetY < 0 || bounds.minY - offsetY > viewHeight;
+	};
 	bool IsPointInRotatedBox(int worldX, int worldY, const CollisionInstanceBounds& bounds);
 	bool IsPixelSolid(const std::vector<uint8_t>& maskData, int width, int height, int x, int y);
 

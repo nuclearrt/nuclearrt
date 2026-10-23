@@ -1271,14 +1271,8 @@ void SDL3GraphicsBackend::UnloadTexture(int id)
 	textures.erase(it);
 }
 
-void SDL3GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scaleX, float scaleY, int color, int effect, unsigned char effectParameter, EffectInstance *effectInstance)
+void SDL3GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scaleX, float scaleY, int color, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
 {
-	auto imageInfo = ImageBank::Instance().GetImage(id);
-	if (!imageInfo)
-	{
-		return;
-	}
-
 	auto texIt = textures.find(id);
 	if (texIt == textures.end())
 	{
@@ -1306,8 +1300,8 @@ void SDL3GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int off
 
 	float drawX = static_cast<float>(x) - (static_cast<float>(offsetX) * scaleX);
 	float drawY = static_cast<float>(y) - (static_cast<float>(offsetY) * scaleY);
-	float width = static_cast<float>(imageInfo->Width) * scaleX;
-	float height = static_cast<float>(imageInfo->Height) * scaleY;
+	float width = static_cast<float>(texture.width) * scaleX;
+	float height = static_cast<float>(texture.height) * scaleY;
 	float drawAngle = static_cast<float>(360 - angle);
 
 	GLuint backgroundTextureId = 0;
