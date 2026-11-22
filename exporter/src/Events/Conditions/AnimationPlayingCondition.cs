@@ -11,9 +11,15 @@ public class AnimationPlayingCondition : ConditionBase
 	{
 		StringBuilder result = new();
 
+		string sequence;
+		if (eventBase.Items[0].Loader is ExpressionParameter)
+			sequence = $"(({ConvertExpression(eventBase, 0)}) - 1)";
+		else
+			sequence = ((Short)eventBase.Items[0].Loader).Value.ToString();
+
 		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
-		result.AppendLine($"    {ifStatement}((Active*)instance)->animations.IsSequencePlaying({((Short)eventBase.Items[0].Loader).Value})) it.deselect();");
+		result.AppendLine($"    {ifStatement}((Active*)instance)->animations.IsSequencePlaying({sequence})) it.deselect();");
 		result.AppendLine("}");
 
 		result.AppendLine($"if ({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}.Count() == 0) goto {nextLabel};");
