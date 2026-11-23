@@ -6,6 +6,8 @@ using CTFAK.EXE;
 using CTFAK.FileReaders;
 using CTFAK.Memory;
 using CTFAK.Utils;
+using System.Threading.Tasks;
+
 using static CollisionMaskBuilder;
 
 public class PakBuilder
@@ -41,27 +43,52 @@ public class PakBuilder
 		}
 
 		PakFile mainPak = new PakFile();
+		
+		var imageEntries = new PakEntry[(gameData.Images.Items.Count)];
+		var MaskEntries = new PakEntry[gameData.Images.Items.Count];
 
-		//images
-		foreach (var image in gameData.Images.Items.Values)
+		var options = new ParallelOptions
 		{
-			var entry = new PakEntry { Path = $"images/{image.Handle}.rgba" };
-			MemoryStream imageStream = WriteCompressedImage(image.bitmap);
-			entry.Size = (uint)imageStream.Length;
-			entry.Data = imageStream.ToArray();
+		    MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1)
+		};
+
+		//images & masks
+		Parallel.ForEach(gameData.Images.Items.Values, options, (image, state, index) =>
+		{
+			// generate an image entry
+			var imageEntry = new PakEntry { Path = $"images/{image.Handle}.rgba" };
+
+			Bitmap imagebitmap = image.bitmap;
+			byte[] imageRawData = new byte[imagebitmap.Width * imagebitmap.Height * 4];
+			BitmapData bitmapData = imagebitmap.LockBits(new Rectangle(0, 0, imagebitmap.Width, imagebitmap.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+			Marshal.Copy(bitmapData.Scan0, imageRawData, 0, imageRawData.Length);
+			imagebitmap.UnlockBits(bitmapData);
+
+			MemoryStream imageStream = WriteCompressedBitMap(imageRawData);
+			imageEntry.Size = (uint)imageStream.Length;
+			imageEntry.Data = imageStream.ToArray();
 			imageStream.Close();
+			imageEntries[index] = imageEntry;
+
+
+			// generate an image entry
+			CollisionMask collisionMask = GenerateCollisionMask(image, imageRawData);
+			
+			var maskEntry = new PakEntry { Path = $"images/masks/{collisionMask.Handle}.bin" };
+			MemoryStream maskStream = WriteCompressedMask(collisionMask);
+			maskEntry.Size = (uint)maskStream.Length;
+			maskEntry.Data = maskStream.ToArray();
+			maskStream.Close();
+			MaskEntries[index] = maskEntry;
+		});
+
+		foreach (var entry in imageEntries)
+		{
 			mainPak.AddEntry(entry);
 		}
 
-		//collision masks
-		var collisionMasks = CollisionMaskBuilder.BuildCollisionMask(gameData);
-		foreach (var mask in collisionMasks)
+		foreach (var entry in MaskEntries)
 		{
-			var entry = new PakEntry { Path = $"images/masks/{mask.Handle}.bin" };
-			MemoryStream maskStream = WriteCompressedMask(mask);
-			entry.Size = (uint)maskStream.Length;
-			entry.Data = maskStream.ToArray();
-			maskStream.Close();
 			mainPak.AddEntry(entry);
 		}
 
@@ -210,6 +237,24 @@ public class PakBuilder
 		Marshal.Copy(bitmapData.Scan0, uncomp, 0, uncomp.Length);
 		image.UnlockBits(bitmapData);
 
+		// swap BGRA to RGBA
+		for (int i = 0; i < uncomp.Length; i += 4)
+		{
+			(uncomp[i], uncomp[i + 2]) = (uncomp[i + 2], uncomp[i]);
+		}
+
+		byte[] comp = new byte[K4os.Compression.LZ4.LZ4Codec.MaximumOutputSize(uncomp.Length)];
+		int encodedLength = K4os.Compression.LZ4.LZ4Codec.Encode(
+			uncomp, 0, uncomp.Length,
+			comp, 0, comp.Length,
+			K4os.Compression.LZ4.LZ4Level.L09_HC);
+
+		return new MemoryStream(comp, 0, encodedLength);
+	}
+
+	// expects Format32bppArgb bitmaps!
+	public static MemoryStream WriteCompressedBitMap(byte[] uncomp)
+	{
 		// swap BGRA to RGBA
 		for (int i = 0; i < uncomp.Length; i += 4)
 		{

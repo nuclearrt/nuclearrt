@@ -1,8 +1,9 @@
-using System.Drawing;
-using System.Linq;
 using CTFAK.CCN;
 using CTFAK.Core.CCN.Chunks.Banks.ImageBank;
 using CTFAK.FileReaders;
+using System.Drawing;
+using System.Linq;
+using static CollisionMaskBuilder;
 
 public class CollisionMaskBuilder
 {
@@ -24,7 +25,8 @@ public class CollisionMaskBuilder
 		{
 			var collisionMask = new CollisionMask { Handle = image.Handle, Width = image.Width, Height = image.Height };
 			Bitmap bitmap = image.bitmap;
-			BinaryWriter writer = new BinaryWriter(new MemoryStream());
+			int rowStride = (image.Width + 7) / 8;
+			var data = new byte[rowStride * image.Height];
 			
 			for (int y = 0; y < image.Height; y++)
 			{
@@ -42,15 +44,79 @@ public class CollisionMaskBuilder
 							}
 						}
 					}
-					writer.Write(mask);
+					data[(y * rowStride) + (x / 8)] = mask;
 				}
 			}
 
-			collisionMask.Data = ((MemoryStream)writer.BaseStream).ToArray();
+			collisionMask.Data = data;
 			collisionMasks.Add(collisionMask);
-			writer.Dispose();
 		}
 
 		return collisionMasks;
 	}
+
+	public static CollisionMask GenerateCollisionMask(FusionImage image)
+	{
+		var collisionMask = new CollisionMask { Handle = image.Handle, Width = image.Width, Height = image.Height };
+		Bitmap bitmap = image.bitmap;
+		int rowStride = (image.Width + 7) / 8;
+		var data = new byte[rowStride * image.Height];
+
+
+		for (int y = 0; y < image.Height; y++)
+		{
+			for (int x = 0; x < image.Width; x += 8)
+			{
+				byte mask = 0;
+				for (int i = 0; i < 8; i++)
+				{
+					if (x + i < image.Width)
+					{
+						bool isSolid = bitmap.GetPixel(x + i, y).A > ALPHA_THRESHOLD;
+						if (isSolid)
+						{
+							mask |= (byte)(1 << (7 - i));
+						}
+					}
+				}
+				data[(y * rowStride) + (x / 8)] = mask;
+			}
+		}
+
+		collisionMask.Data = data;
+		return collisionMask;
+	}
+
+	// NOTE: imageData is expected to be in Format32bppArgb format
+	public static CollisionMask GenerateCollisionMask(FusionImage image, byte[] imageData)
+	{
+		var collisionMask = new CollisionMask { Handle = image.Handle, Width = image.Width, Height = image.Height };
+		int rowStride = (image.Width + 7) / 8;
+		var data = new byte[rowStride * image.Height];
+
+
+		for (int y = 0; y < image.Height; y++)
+		{
+			for (int x = 0; x < image.Width; x += 8)
+			{
+				byte mask = 0;
+				for (int i = 0; i < 8; i++)
+				{
+					if (x + i < image.Width)
+					{
+						bool isSolid = imageData[((y * image.Width + (x + i)) * 4) + 3] > ALPHA_THRESHOLD;
+						if (isSolid)
+						{
+							mask |= (byte)(1 << (7 - i));
+						}
+					}
+				}
+				data[(y * rowStride) + (x / 8)] = mask;
+			}
+		}
+
+		collisionMask.Data = data;
+		return collisionMask;
+	}
+
 }
