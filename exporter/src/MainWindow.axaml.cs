@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -14,6 +16,11 @@ namespace NuclearRTExporter
 		private ScrollViewer? logScrollViewer;
 
 		private bool exportSuccess = false;
+
+		private const int MaxLogLines = 2000;
+		private readonly ConcurrentQueue<string> pendingLogs = new();
+		private readonly Queue<string> logLines = new();
+		private DispatcherTimer? logFlushTimer;
 
 		public MainWindow()
 		{
@@ -59,6 +66,9 @@ namespace NuclearRTExporter
 		{
 			logTextBlock = this.FindControl<TextBlock>("LogTextBlock");
 			logScrollViewer = this.FindControl<ScrollViewer>("LogScrollViewer");
+
+			logFlushTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Background, (_, _) => FlushLogs());
+			logFlushTimer.Start();
 		}
 
 		private async Task StartExport(ExportSettings settings)
@@ -81,30 +91,29 @@ namespace NuclearRTExporter
 
 		public void Log(string message)
 		{
-			Dispatcher.UIThread.Post(() =>
+			pendingLogs.Enqueue($"[{DateTime.Now:HH:mm:ss}] {message}");
+		}
+
+		private void FlushLogs()
+		{
+			if (pendingLogs.IsEmpty || logTextBlock == null || logScrollViewer == null)
+				return;
+
+			while (pendingLogs.TryDequeue(out var line))
 			{
-				if (logTextBlock != null && logScrollViewer != null)
-				{
-					bool wasAtBottom = Math.Abs(logScrollViewer.Offset.Y - logScrollViewer.ScrollBarMaximum.Y) < 1.0;
+				logLines.Enqueue(line);
+				if (logLines.Count > MaxLogLines)
+					logLines.Dequeue();
+			}
 
-					string timestamp = DateTime.Now.ToString("HH:mm:ss");
-					string newLogEntry = $"[{timestamp}] {message}";
+			bool wasAtBottom = Math.Abs(logScrollViewer.Offset.Y - logScrollViewer.ScrollBarMaximum.Y) < 1.0;
 
-					if (string.IsNullOrEmpty(logTextBlock.Text))
-					{
-						logTextBlock.Text = newLogEntry;
-					}
-					else
-					{
-						logTextBlock.Text = $"{logTextBlock.Text}\n{newLogEntry}";
-					}
+			logTextBlock.Text = string.Join("\n", logLines);
 
-					if (wasAtBottom)
-					{
-						logScrollViewer.ScrollToEnd();
-					}
-				}
-			});
+			if (wasAtBottom)
+			{
+				logScrollViewer.ScrollToEnd();
+			}
 		}
 	}
 }
