@@ -87,6 +87,11 @@ void BinaryWriter::WriteChar(char value)
     stream_->write(reinterpret_cast<const char*>(&value), 1);
 }
 
+void BinaryWriter::WriteCharWide(wchar_t value)
+{
+    stream_->write(reinterpret_cast<const char*>(&value), 2);
+}
+
 void BinaryWriter::WriteNullTerminatedString(const std::string& value)
 {
     stream_->write(value.data(), value.size());
@@ -96,6 +101,12 @@ void BinaryWriter::WriteNullTerminatedString(const std::string& value)
 void BinaryWriter::WriteFixedLengthString(const std::string& value)
 {
     stream_->write(value.data(), value.size());
+}
+
+void BinaryWriter::WriteFixedLengthStringWide(const std::wstring& value)
+{
+    for (wchar_t ch : value)
+        WriteCharWide(ch);
 }
 
 void BinaryWriter::WriteFloat(float value)
