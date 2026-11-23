@@ -27,7 +27,8 @@ public static class ExtensionExporterRegistry
 		new IntegerSplitExporter(),
 		new SecToHMSExporter(),
 		new KcRuntimeExporter(),
-		new storefloatExporter()
+		new storefloatExporter(),
+		new WindowControlExporter(),
 	];
 
 	public static ExtensionExporter GetExporter(string extensionName)
