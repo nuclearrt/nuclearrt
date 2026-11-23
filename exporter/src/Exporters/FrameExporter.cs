@@ -237,6 +237,7 @@ public class FrameExporter : BaseExporter
 				int objectType = GameData.frameitems[(int)obj.objectInfo].ObjectType;
 				if (objectType == 0 || objectType == 1) continue;
 				objectSelectorsInit.AppendLine($"{SanitizeObjectName(objectName)}_{obj.objectInfo}_selector.Initialize(ObjectInstances, {obj.objectInfo}, false);");
+				objectSelectorsInit.AppendLine($"Selectors.push_back(&{SanitizeObjectName(objectName)}_{obj.objectInfo}_selector);");
 			}
 		}
 
@@ -246,6 +247,7 @@ public class FrameExporter : BaseExporter
 			string objectName = Utilities.GetQualifierName(qualifier.ObjectInfo & 0x7FFF, qualifier.Type);
 			uint qualifierHandle = ((uint)qualifier.ObjectInfo & 0x7FFF) | ((uint)qualifier.Type << 16);
 			objectSelectorsInit.AppendLine($"{SanitizeObjectName(objectName)}_{qualifier.ObjectInfo}_selector.Initialize(ObjectInstances, {qualifierHandle}, true);");
+			objectSelectorsInit.AppendLine($"Selectors.push_back(&{SanitizeObjectName(objectName)}_{qualifier.ObjectInfo}_selector);");
 		}
 
 		return objectSelectorsInit.ToString();

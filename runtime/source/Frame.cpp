@@ -620,6 +620,9 @@ ObjectInstance* Frame::CreateInstance(ObjectInstance* createdInstance, short x, 
 	}
 	
 	ObjectInstances[createdInstance->Handle] = createdInstance;
+	for (ObjectSelector* selector : Selectors) {
+		selector->Track(createdInstance);
+	}
 	if (parentInstance) {
 		createdInstance->SetX(createdInstance->GetX() + parentInstance->GetX());
 		createdInstance->SetY(createdInstance->GetY() + parentInstance->GetY());

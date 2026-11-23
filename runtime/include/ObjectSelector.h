@@ -20,20 +20,33 @@ public:
 		IsQualifier = isQualifier;
 		AllSelectorObjectInstances.clear();
 		for (const auto& [handle, instance] : allInstances) {
-			instance->isSelected = false; 
-			if (IsQualifier) {
-				for (int i = 0; i < instance->Qualifiers.size(); i++) {
-					if (instance->Qualifiers[i] == (ObjectInfoId & 0x7FFF) && instance->Type == (ObjectInfoId >> 16)) {
-						AllSelectorObjectInstances.push_back(instance);
-						break;
-					}
-				}
-			} else if (instance->ObjectInfoHandle == ObjectInfoId) {
+			instance->isSelected = false;
+			if (Matches(instance)) {
 				AllSelectorObjectInstances.push_back(instance);
 			}
 		}
-		std::sort(AllSelectorObjectInstances.begin(), AllSelectorObjectInstances.end(), 
+		std::sort(AllSelectorObjectInstances.begin(), AllSelectorObjectInstances.end(),
 			[](ObjectInstance* a, ObjectInstance* b) { return a->Handle < b->Handle; });
+	}
+
+	// true if this selector's object type or qualifier group covers the instance
+	bool Matches(const ObjectInstance* instance) const {
+		if (!IsQualifier) return instance->ObjectInfoHandle == ObjectInfoId;
+		if (instance->Type != (ObjectInfoId >> 16)) return false;
+		for (short qualifier : instance->Qualifiers) {
+			if (qualifier == (ObjectInfoId & 0x7FFF)) return true;
+		}
+		return false;
+	}
+
+	// Called for every newly created instance: adds it to the pool without changing the current selection
+	void Track(ObjectInstance* instance) {
+		if (!Matches(instance)) return;
+		auto it = std::lower_bound(AllSelectorObjectInstances.begin(), AllSelectorObjectInstances.end(), instance,
+			[](ObjectInstance* a, ObjectInstance* b) { return a->Handle < b->Handle; });
+		if (it == AllSelectorObjectInstances.end() || (*it)->Handle != instance->Handle) {
+			AllSelectorObjectInstances.insert(it, instance);
+		}
 	}
 
 	std::vector<ObjectInstance*> SaveSelection() {

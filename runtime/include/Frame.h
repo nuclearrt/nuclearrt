@@ -34,6 +34,7 @@ public:
 
 	std::vector<Layer> Layers;
 
+	std::vector<ObjectSelector*> Selectors;
 	std::unordered_map<unsigned int, ObjectInstance*> ObjectInstances;
 	unsigned int MaxObjectInstanceHandle = 0;
 	
@@ -70,6 +71,9 @@ public:
 	void MarkForDeletion(ObjectInstance* instance) {
 		if (instance) {
 			instancesMarkedForDeletion.push_back(instance->Handle);
+			for (ObjectSelector* selector : Selectors) {
+				selector->RemoveInstance(instance->Handle);
+			}
 		}
 	}
 
