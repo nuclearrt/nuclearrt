@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cmath>
 #include <string>
+#include <cstdlib>
 #include <algorithm>
 #include <type_traits>
 
@@ -84,6 +85,7 @@ namespace MathHelper {
     inline double ATan2(double y, double x) { return ToDegrees(std::atan2(y, x)); }
     
     inline CValue Sin(const CValue& v) { return CValue(Sin(v.GetDoubleValue())); }
+    inline CValue Cos(const CValue& v) { return CValue(Cos(v.GetDoubleValue())); }
     inline CValue Sqrt(const CValue& v) { return CValue(std::sqrt(v.GetDoubleValue())); }
     inline CValue Abs(const CValue& v) { return CValue(std::abs(v.GetDoubleValue())); }
     inline CValue Round(const CValue& v) { return CValue(std::round(v.GetDoubleValue())); }
@@ -98,11 +100,10 @@ namespace MathHelper {
             return v;
 
         const std::string& str = v.GetStringValue();
-        if (str.empty())
-            return CValue(0);
+        double d = std::strtod(str.c_str(), nullptr);
         if (str.find('.') != std::string::npos)
-            return CValue(std::stod(str));
-        return CValue(std::stoi(str));
+            return CValue(d);
+        return CValue((int)d);
     }
 
     // color helpers

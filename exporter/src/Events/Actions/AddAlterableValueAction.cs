@@ -13,7 +13,14 @@ public class AddAlterableValueAction : ActionBase
 
 		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
-		result.AppendLine($"    (({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, eventBase.ObjectType)}*)instance)->Values.AddValue({((Short)eventBase.Items[0].Loader).Value}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)});");
+		if (eventBase.Items[0].Loader is ExpressionParameter expressionParameter)
+		{
+			result.AppendLine($"    (({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, eventBase.ObjectType)}*)instance)->Values.AddValue(({ExpressionConverter.ConvertExpression(expressionParameter, eventBase)}).GetIntValue(), {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)});");
+		}
+		else if (eventBase.Items[0].Loader is Short shortParameter)
+		{
+			result.AppendLine($"    (({ExpressionConverter.GetObjectClassName(eventBase.ObjectInfo, eventBase.ObjectType)}*)instance)->Values.AddValue({shortParameter.Value}, {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)});");
+		};
 		result.AppendLine("}");
 
 		return result.ToString();

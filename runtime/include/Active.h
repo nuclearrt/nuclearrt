@@ -71,6 +71,22 @@ public:
 		return yScale;
 	}
 
+	CValue GetXLeft() const {
+		return GetX() - animations.GetXHotspot();
+	}
+
+	CValue GetXRight() const {
+		return GetX() - animations.GetXHotspot() + animations.GetWidth();
+	}
+
+	CValue GetYTop() const {
+		return GetY() - animations.GetYHotspot();
+	}
+
+	CValue GetYBottom() const {
+		return GetY() - animations.GetYHotspot() + animations.GetHeight();
+	}
+	
 	void SetXScale(const CValue& xScale) {
 		if (xScale.GetDoubleValue() == this->xScale) return;
 		this->xScale = (float)xScale.GetDoubleValue();

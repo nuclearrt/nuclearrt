@@ -41,9 +41,11 @@ public:
 	void SetCurrentDirectionMask(int directionMask);
 	void SetCurrentDirection(int index);
 
+	void SetForcedSpeed(const CValue& speed);
 	void SetForcedFrame(const CValue& frame);
 	void SetForcedDirection(const CValue& directionMask);
 
+	void RestoreForcedSpeed();
 	void RestoreForcedSequence();
 	void RestoreForcedDirection();
 	void RestoreForcedFrame();
@@ -71,6 +73,7 @@ private:
 
 	bool started = true;
 
+	int forcedSpeed = -1;
 	int forcedFrame = -1;
 	int forcedDirection = -1;
 	int forcedSequence = -1;
