@@ -9,24 +9,28 @@ public class EffectBankExporter : BaseExporter
 
 	public static HashSet<string> thirdPartyShaderHashes = [];
 
+	public static Dictionary<string, HlslToGlsl.Result> translatedShaders = [];
+
 	public override void Export()
 	{
 		var effectFunctionDefinitions = new StringBuilder();
 		var effectFunctions = new StringBuilder();
+		translatedShaders.Clear();
 
 		for (int i = 0; i < (GameData.shaders.ShaderList?.Count ?? 0); i++)
 		{
 			var shader = GameData.shaders.ShaderList.ElementAt(i).Value;
-			if (!EffectExists(shader, RuntimeBasePath))
-			{
-				Logger.Log($"Effect \"{shader.Name} ({GetEffectHash(shader)})\" does not exist!");
-			}
+			// translate when any API is missing a hand-written port
+			var hash = GetEffectHash(shader);
+			if (GetThirdPartyFrag(RuntimeBasePath, "gles300", hash) == null || GetThirdPartyFrag(RuntimeBasePath, "gl330", hash) == null)
+				TranslateEffect(shader);
 
 			effectFunctionDefinitions.Append(BuildEffectFunctionDefinition(shader, i));
 			effectFunctions.Append(BuildEffectFunction(shader, i));
 		}
 
 		thirdPartyShaderHashes = GetThirdPartyShaderHashes(RuntimeBasePath);
+		thirdPartyShaderHashes.UnionWith(translatedShaders.Keys);
 
 		var effectBankListPath = Path.Combine(RuntimeBasePath.FullName, "source", "EffectBank.template.cpp");
 		var effectBankList = File.ReadAllText(effectBankListPath);
@@ -39,6 +43,28 @@ public class EffectBankExporter : BaseExporter
 		effectBankInclude = effectBankInclude.Replace("{{ EFFECT_DEFINITIONS }}", effectFunctionDefinitions.ToString());
 		SaveFile(Path.Combine(OutputPath.FullName, "include", "EffectBank.h"), effectBankInclude);
 		File.Delete(effectBankIncludePath);
+	}
+
+	private static void TranslateEffect(Shader shader)
+	{
+		var hash = GetEffectHash(shader);
+		if (translatedShaders.ContainsKey(hash))
+			return;
+		if (string.IsNullOrWhiteSpace(shader.Data))
+			return;
+
+		try
+		{
+			var parameterTypes = new Dictionary<string, int>();
+			foreach (var parameter in shader.Parameters)
+				parameterTypes.TryAdd(parameter.Name, parameter.Type);
+			var result = HlslToGlsl.Translate(shader.Data, parameterTypes);
+			translatedShaders[hash] = result;
+		}
+		catch (Exception e)
+		{
+			Logger.Log($"Effect \"{shader.Name} ({hash})\" could not be translated: {e.Message}");
+		}
 	}
 
 	private string BuildEffectFunctionDefinition(Shader shader, int index)

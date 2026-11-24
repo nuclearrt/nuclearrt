@@ -537,8 +537,8 @@ GLuint SDL3GraphicsBackend::CaptureObjectBackground(int x, int y, int width, int
 
 	int srcX = std::max(0, x);
 	int srcY = std::max(0, y);
-	int srcW = std::min(width, logicalRenderWidth - srcX);
-	int srcH = std::min(height, logicalRenderHeight - srcY);
+	int srcW = std::min(x + width, logicalRenderWidth) - srcX;
+	int srcH = std::min(y + height, logicalRenderHeight) - srcY;
 	if (srcW > 0 && srcH > 0)
 	{
 		int pixelSrcX = static_cast<int>(std::lround(srcX * coordScaleX));
@@ -550,6 +550,8 @@ GLuint SDL3GraphicsBackend::CaptureObjectBackground(int x, int y, int width, int
 
 		int dstX = static_cast<int>(std::lround(static_cast<float>(srcX - x) * coordScaleX));
 		int dstYFromTop = static_cast<int>(std::lround(static_cast<float>(srcY - y) * coordScaleY));
+		pixelSrcW = std::min(pixelSrcW, pixelW - dstX);
+		pixelSrcH = std::min(pixelSrcH, pixelH - dstYFromTop);
 
 		if (pixelSrcW > 0 && pixelSrcH > 0 && dstX >= 0 && dstYFromTop >= 0 && dstX + pixelSrcW <= pixelW && dstYFromTop + pixelSrcH <= pixelH)
 		{
@@ -1091,6 +1093,8 @@ void SDL3GraphicsBackend::ApplyEffectParameters(EffectInstance *effectInstance, 
 			for (auto &param : effectInstance->Parameters)
 			{
 				GLint loc = glGetUniformLocation(shader->program, param.Name.c_str());
+				if (loc < 0) // auto-translated shaders suffix parameters whose names are reserved in GLSL
+					loc = glGetUniformLocation(shader->program, (param.Name + "_").c_str());
 				if (loc < 0)
 					continue;
 				if (param.Type == 0)
@@ -1624,8 +1628,8 @@ void SDL3GraphicsBackend::DrawEffectRect(int x, int y, int width, int height, in
 
 	int srcX = std::max(0, x);
 	int srcY = std::max(0, y);
-	int srcW = std::min(width, logicalRenderWidth - srcX);
-	int srcH = std::min(height, logicalRenderHeight - srcY);
+	int srcW = std::min(x + width, logicalRenderWidth) - srcX;
+	int srcH = std::min(y + height, logicalRenderHeight) - srcY;
 	if (srcW <= 0 || srcH <= 0)
 	{
 		return;

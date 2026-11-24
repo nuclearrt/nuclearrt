@@ -43,7 +43,7 @@ public class PakBuilder
 		}
 
 		PakFile mainPak = new PakFile();
-		
+
 		var imageEntries = new PakEntry[(gameData.Images.Items.Count)];
 		var MaskEntries = new PakEntry[gameData.Images.Items.Count];
 
@@ -64,7 +64,7 @@ public class PakBuilder
 			Marshal.Copy(bitmapData.Scan0, imageRawData, 0, imageRawData.Length);
 			imagebitmap.UnlockBits(bitmapData);
 
-			MemoryStream imageStream = WriteCompressedBitMap(imageRawData);
+			MemoryStream imageStream = WriteCompressedBitMap(imageRawData, image.Flags["Alpha"] || image.Flags["RGBA"]);
 			imageEntry.Size = (uint)imageStream.Length;
 			imageEntry.Data = imageStream.ToArray();
 			imageStream.Close();
@@ -73,7 +73,7 @@ public class PakBuilder
 
 			// generate an image entry
 			CollisionMask collisionMask = GenerateCollisionMask(image, imageRawData);
-			
+
 			var maskEntry = new PakEntry { Path = $"images/masks/{collisionMask.Handle}.bin" };
 			MemoryStream maskStream = WriteCompressedMask(collisionMask);
 			maskEntry.Size = (uint)maskStream.Length;
@@ -167,7 +167,7 @@ public class PakBuilder
 	{
 		Dictionary<Tuple<string, List<string>>, PakFile> shaderVersions = new Dictionary<Tuple<string, List<string>>, PakFile>() {
 			{ Tuple.Create("gles300", new List<string> { "web", "mobile" }), new PakFile() },
-			{ Tuple.Create("gl330", new List<string> { "desktop" }), new PakFile() }
+			{ Tuple.Create("gl330", new List<string> { "desktop", "wiiu" }), new PakFile() }
 		};
 		var baseShaderFolder = new DirectoryInfo(Path.Combine(outputPath.FullName, "shaders"));
 		if (baseShaderFolder.Exists)
@@ -192,10 +192,16 @@ public class PakBuilder
 			foreach (var hash in EffectBankExporter.thirdPartyShaderHashes)
 			{
 				var fragFile = EffectBankExporter.GetThirdPartyFrag(outputPath, shaderVersion.Item1, hash);
-				if (fragFile == null || !fragFile.Exists) continue;
+				byte[] data;
+				if (fragFile != null && fragFile.Exists)
+					data = File.ReadAllBytes(fragFile.FullName);
+				else if (EffectBankExporter.translatedShaders.TryGetValue(hash, out var generated))
+					data = System.Text.Encoding.UTF8.GetBytes(shaderVersion.Item1 == "gles300" ? generated.Gles300 : generated.Gl330);
+				else
+					continue;
 
 				var entry = new PakEntry { Path = $"shaders/thirdparty/{hash}.frag" };
-				entry.Data = File.ReadAllBytes(fragFile.FullName);
+				entry.Data = data;
 				entry.Size = (uint)entry.Data.Length;
 				shaderVersions[shaderVersion].AddEntry(entry);
 			}
@@ -253,12 +259,15 @@ public class PakBuilder
 	}
 
 	// expects Format32bppArgb bitmaps!
-	public static MemoryStream WriteCompressedBitMap(byte[] uncomp)
+	public static MemoryStream WriteCompressedBitMap(byte[] uncomp, bool hasAlphaChannel = true)
 	{
 		// swap BGRA to RGBA
 		for (int i = 0; i < uncomp.Length; i += 4)
 		{
 			(uncomp[i], uncomp[i + 2]) = (uncomp[i + 2], uncomp[i]);
+			// images masked by a transparent colour become black
+			if (!hasAlphaChannel && uncomp[i + 3] == 0)
+				uncomp[i] = uncomp[i + 1] = uncomp[i + 2] = 0;
 		}
 
 		byte[] comp = new byte[K4os.Compression.LZ4.LZ4Codec.MaximumOutputSize(uncomp.Length)];
@@ -293,8 +302,8 @@ public class PakBuilder
 		bw.Write(mask.Data.Length);
 		bw.Write(comp, 0, compressedSize);
 
-		bw.Flush(); 
-		ms.Position = 0; 
+		bw.Flush();
+		ms.Position = 0;
 
 		return ms;
 	}
