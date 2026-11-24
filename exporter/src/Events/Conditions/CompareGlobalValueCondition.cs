@@ -14,7 +14,7 @@ public class CompareGlobalValueCondition : ConditionBase
 		}
 		if (eventBase.Items[0].Loader is ExpressionParameter expressionParameter)
 		{
-			return $"{ifStatement} ((Application::Instance().GetAppData()->GetGlobalValue({ExpressionConverter.ConvertExpression(expressionParameter, eventBase)} - 1) {ExpressionConverter.GetComparisonSymbol(((ExpressionParameter)eventBase.Items[1].Loader).Comparsion)} {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)} - 1))) goto {nextLabel};"; // -1 since GetGlobalValue is 0-indexed
+			return $"{ifStatement} ((Application::Instance().GetAppData()->GetGlobalValue({ExpressionConverter.ConvertExpression(expressionParameter, eventBase)} - 1) {ExpressionConverter.GetComparisonSymbol(((ExpressionParameter)eventBase.Items[1].Loader).Comparsion)} {ExpressionConverter.ConvertExpression((ExpressionParameter)eventBase.Items[1].Loader, eventBase)}))) goto {nextLabel};"; // -1 since GetGlobalValue is 0-indexed
 		}
 		return "";
 	}

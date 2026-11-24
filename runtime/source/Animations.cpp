@@ -190,6 +190,14 @@ void Animations::SetCurrentDirection(int index) {
 	}
 }
 
+void Animations::SetForcedSpeed(const CValue& speed) {
+    forcedSpeed = std::clamp(speed.GetIntValue(), 0, 100);
+}
+
+void Animations::RestoreForcedSpeed() {
+    forcedSpeed = -1;
+}
+
 void Animations::SetForcedFrame(const CValue& frame) {
 	if (forcedFrame == frame.GetIntValue()) return;
 	
@@ -290,8 +298,10 @@ void Animations::Update(float deltaTime) {
 	if (currentSequence->Directions.find(displayDirection) == currentSequence->Directions.end()) {
 		forcedDirection = -1;
 		displayDirection = GetNearestDirectionIndex(currentSequence, displayDirection);
+		if (CurrentDirection != displayDirection) {
 		CurrentDirection = displayDirection;
 		CurrentFrameTime = 0.0f;
+		}
 	}
 	else if (displayDirection != CurrentDirection) {
 		CurrentDirection = displayDirection;
@@ -317,26 +327,35 @@ void Animations::Update(float deltaTime) {
 		return;
 	}
 
-	int animMinSpeed = std::clamp(currentDirection->MinimumSpeed, 0, 100);
-	int animMaxSpeed = std::clamp(currentDirection->MaximumSpeed, 0, 100);
-	if (animMaxSpeed < animMinSpeed) {
-		animMaxSpeed = animMinSpeed;
-	}
-	if (!IsTwoSpeedAnimation(displaySequence)) {
-		animMinSpeed = animMaxSpeed;
-	}
+	int animSpeed = 0;
 
-	int animSpeed = animMinSpeed;
-	int animDeltaSpeed = animMaxSpeed - animMinSpeed;
-	if (animDeltaSpeed > 0) {
-		int movementDelta = maximumSpeed - minimumSpeed;
-		if (movementDelta == 0) {
-			animSpeed = animMinSpeed + (animDeltaSpeed / 2);
-		} else {
-			int normalizedSpeed = std::clamp(speed - minimumSpeed, 0, movementDelta);
-			animSpeed = animMinSpeed + ((animDeltaSpeed * normalizedSpeed) / movementDelta);
+	if (forcedSpeed != -1) 
+	{
+		animSpeed = forcedSpeed;
+	}
+	else
+	{
+		int animMinSpeed = std::clamp(currentDirection->MinimumSpeed, 0, 100);
+		int animMaxSpeed = std::clamp(currentDirection->MaximumSpeed, 0, 100);
+		if (animMaxSpeed < animMinSpeed) {
+			animMaxSpeed = animMinSpeed;
 		}
-		animSpeed = std::clamp(animSpeed, animMinSpeed, animMaxSpeed);
+		if (!IsTwoSpeedAnimation(displaySequence)) {
+			animMinSpeed = animMaxSpeed;
+		}
+
+		animSpeed = animMinSpeed;
+		int animDeltaSpeed = animMaxSpeed - animMinSpeed;
+		if (animDeltaSpeed > 0) {
+			int movementDelta = maximumSpeed - minimumSpeed;
+			if (movementDelta == 0) {
+				animSpeed = animMinSpeed + (animDeltaSpeed / 2);
+			} else {
+				int normalizedSpeed = std::clamp(speed - minimumSpeed, 0, movementDelta);
+				animSpeed = animMinSpeed + ((animDeltaSpeed * normalizedSpeed) / movementDelta);
+			}
+			animSpeed = std::clamp(animSpeed, animMinSpeed, animMaxSpeed);
+		}
 	}
 
 	if (animSpeed == 0) {

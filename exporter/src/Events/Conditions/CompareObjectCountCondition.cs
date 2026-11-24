@@ -4,7 +4,7 @@ using CTFAK.MMFParser.EXE.Loaders.Events.Parameters;
 
 public class CompareObjectCountCondition : ConditionBase
 {
-	public override int[] ObjectType { get; set; } = [2];
+	public override int[] ObjectType { get; set; } = [2, 3, 7];
 	public override int Num { get; set; } = -32;
 
 	public override string Build(EventBase eventBase, ref string nextLabel, ref int orIndex, Dictionary<string, object>? parameters = null, string ifStatement = "if (")

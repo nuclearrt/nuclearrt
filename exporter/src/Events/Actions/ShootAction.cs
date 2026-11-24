@@ -21,6 +21,7 @@ public class ShootAction : ActionBase
 
 		result.AppendLine($"for (ObjectIterator it({GetSelector(eventBase.ObjectInfo, eventBase.ObjectType)}); !it.end(); ++it) {{");
 		result.AppendLine($"    auto instance = *it;");
+		result.AppendLine($"    ((Active*)instance)->animations.SetCurrentSequenceIndex(6);");
 		result.AppendLine($"    ObjectInstance* newCreatedInstance = CreateInstance(ObjectFactory::Instance().CreateInstance_{StringUtils.SanitizeObjectName(objectInfo.Item2)}_{objectInfo.Item1}(), ((Active*)instance)->GetXActionPoint().GetIntValue(), ((Active*)instance)->GetYActionPoint().GetIntValue(), instance->Layer, 0, {objectInfo.Item1}, 0, true, nullptr);");
 		result.AppendLine($"    {GetSelector(shoot.ObjectInfo, shoot.ShootPos.TypeParent)}.AddInstance(newCreatedInstance);");
 		result.AppendLine($"    ((Active*)newCreatedInstance)->movements.items.clear();");
