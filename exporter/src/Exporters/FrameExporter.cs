@@ -74,6 +74,7 @@ public class FrameExporter : BaseExporter
 		frameCpp = frameCpp.Replace("{{ FRAME_HEIGHT }}", frame.height.ToString());
 		frameCpp = frameCpp.Replace("{{ FRAME_BACKGROUND_COLOR }}", ColorToRGB(frame.background).ToString());
 
+		frameCpp = frameCpp.Replace("{{ FRAME_TRANSITIONS }}", BuildTransitions(frame));
 		frameCpp = frameCpp.Replace("{{ LAYER_INIT }}", BuildLayers(frame));
 		frameCpp = frameCpp.Replace("{{ OBJECT_INSTANCES }}", BuildObjectInstances(frame));
 		frameCpp = frameCpp.Replace("{{ OBJECT_SELECTORS_INIT }}", BuildObjectSelectorsInit(frame));
@@ -103,6 +104,20 @@ public class FrameExporter : BaseExporter
 		frameHeader = frameHeader.Replace("{{ ONLY_ONE_ACTION_WHEN_LOOP_CONDITION }}", _eventProcessor.BuildOneActionLoop(frameIndex));
 
 		return frameHeader;
+	}
+
+	private string BuildTransitions(Frame frame)
+	{
+		var sb = new StringBuilder();
+		if (frame.fadeIn != null) sb.AppendLine($"FadeIn = {BuildTransitionData(frame.fadeIn)};");
+		if (frame.fadeOut != null) sb.AppendLine($"FadeOut = {BuildTransitionData(frame.fadeOut)};");
+		return sb.ToString();
+	}
+
+	private string BuildTransitionData(Transition transition)
+	{
+		string parameters = string.Join(", ", (transition.ParameterData ?? Array.Empty<byte>()).Select(b => $"0x{b:X2}"));
+		return $"std::make_shared<TransitionData>(\"{SanitizeString(transition.Name ?? "")}\", {transition.Duration}, {transition.Flags}, {ColorToRGB(transition.Color)}, std::vector<unsigned char>{{ {parameters} }})";
 	}
 
 	private string BuildSoundsUsed(Frame frame)

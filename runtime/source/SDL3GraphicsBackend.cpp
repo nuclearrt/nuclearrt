@@ -332,6 +332,13 @@ void SDL3GraphicsBackend::Deinitialize()
 	}
 	thirdPartyShaders.clear();
 
+	if (transitionShaderProgram != 0)
+	{
+		glDeleteProgram(transitionShaderProgram);
+		transitionShaderProgram = 0;
+	}
+	ReleaseTransitionSurfaces();
+
 	if (sceneBackgroundFBO != 0)
 	{
 		glDeleteFramebuffers(1, &sceneBackgroundFBO);
@@ -915,6 +922,20 @@ void SDL3GraphicsBackend::CreateStandardShaders()
 	gradientShaderColor2Loc = glGetUniformLocation(gradientShaderProgram, "uColor2");
 	gradientShaderVerticalLoc = glGetUniformLocation(gradientShaderProgram, "uVertical");
 	gradientShaderCircleClipLoc = glGetUniformLocation(gradientShaderProgram, "circleClip");
+
+	std::string transitionFragSrc = LoadShaderSource("shaders/standard/transition.frag");
+	transitionShaderProgram = transitionFragSrc.empty() ? 0 : CreateShaderProgram(vertexSrc.c_str(), transitionFragSrc.c_str());
+	if (transitionShaderProgram == 0)
+	{
+		backend->GetPlatform()->Log("Failed to create transition shader program, frame transitions are disabled");
+		return;
+	}
+	transitionShaderMVPLoc = glGetUniformLocation(transitionShaderProgram, "uMVP");
+	transitionShaderTextureLoc = glGetUniformLocation(transitionShaderProgram, "uTexture");
+	transitionShaderAlphaLoc = glGetUniformLocation(transitionShaderProgram, "uAlpha");
+	transitionShaderPatternLoc = glGetUniformLocation(transitionShaderProgram, "uPattern");
+	transitionShaderSizeLoc = glGetUniformLocation(transitionShaderProgram, "uSize");
+	transitionShaderRevealLoc = glGetUniformLocation(transitionShaderProgram, "uReveal");
 }
 
 void SDL3GraphicsBackend::UseEffectShader(int effect)
@@ -1164,6 +1185,10 @@ void SDL3GraphicsBackend::RenderQuad(float x, float y, float w, float h, float a
 	else if (static_cast<GLuint>(currentProgram) == gradientShaderProgram)
 	{
 		mvpLoc = gradientShaderMVPLoc;
+	}
+	else if (transitionShaderProgram != 0 && static_cast<GLuint>(currentProgram) == transitionShaderProgram)
+	{
+		mvpLoc = transitionShaderMVPLoc;
 	}
 	else
 	{
@@ -2019,6 +2044,108 @@ SDL_Color SDL3GraphicsBackend::RGBAToSDLColor(int color)
 		static_cast<Uint8>(color & 0xFF),
 		static_cast<Uint8>((color >> 24) & 0xFF)
 	};
+}
+
+SDL3GraphicsBackend::TransitionSurfaceTarget* SDL3GraphicsBackend::EnsureTransitionSurface(int surface)
+{
+	if (surface < 0 || surface > 1 || renderTargetWidth <= 0 || renderTargetHeight <= 0)
+		return nullptr;
+
+	TransitionSurfaceTarget& target = transitionSurfaces[surface];
+	if (target.texture != 0 && target.width == renderTargetWidth && target.height == renderTargetHeight)
+		return &target;
+
+	if (target.framebuffer != 0) glDeleteFramebuffers(1, &target.framebuffer);
+	if (target.texture != 0) glDeleteTextures(1, &target.texture);
+
+	GLint filter = Application::Instance().GetAppData()->GetAntiAliasingWhenResizing() ? GL_LINEAR : GL_NEAREST;
+	glGenTextures(1, &target.texture);
+	glBindTexture(GL_TEXTURE_2D, target.texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, renderTargetWidth, renderTargetHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glGenFramebuffers(1, &target.framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, target.framebuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target.texture, 0);
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		backend->GetPlatform()->Log("Transition framebuffer is not complete!");
+	}
+
+	target.width = renderTargetWidth;
+	target.height = renderTargetHeight;
+	RestoreDrawFramebuffer();
+	return &target;
+}
+
+void SDL3GraphicsBackend::GetTransitionDisplaySize(int& width, int& height)
+{
+	width = logicalRenderWidth;
+	height = logicalRenderHeight;
+}
+
+void SDL3GraphicsBackend::CaptureTransitionSurface(int surface)
+{
+	TransitionSurfaceTarget* target = EnsureTransitionSurface(surface);
+	if (target == nullptr || renderTarget == 0)
+		return;
+
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, renderTarget);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target->framebuffer);
+	glBlitFramebuffer(0, 0, renderTargetWidth, renderTargetHeight, 0, 0, target->width, target->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	RestoreDrawFramebuffer();
+}
+
+void SDL3GraphicsBackend::FillTransitionSurface(int surface, int color)
+{
+	TransitionSurfaceTarget* target = EnsureTransitionSurface(surface);
+	if (target == nullptr)
+		return;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, target->framebuffer);
+	glViewport(0, 0, target->width, target->height);
+	glClearColor(((color >> 16) & 0xFF) / 255.0f, ((color >> 8) & 0xFF) / 255.0f, (color & 0xFF) / 255.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	RestoreDrawFramebuffer();
+}
+
+void SDL3GraphicsBackend::DrawTransitionSurface(int surface, float xDest, float yDest, float wDest, float hDest, float u0, float v0, float u1, float v1, float alpha, int pattern, float patternWidth, float patternHeight, float surfaceWidth, float surfaceHeight)
+{
+	if (surface < 0 || surface > 1 || transitionShaderProgram == 0 || renderTarget == 0)
+		return;
+	const TransitionSurfaceTarget& target = transitionSurfaces[surface];
+	if (target.texture == 0)
+		return;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, renderTarget);
+	glViewport(0, 0, renderTargetWidth, renderTargetHeight);
+	drawingLayer = false;
+
+	glUseProgram(transitionShaderProgram);
+	currentInkEffect = -1;
+	glUniform1f(transitionShaderAlphaLoc, alpha);
+	glUniform1i(transitionShaderPatternLoc, pattern);
+	glUniform2f(transitionShaderSizeLoc, surfaceWidth, surfaceHeight);
+	glUniform2f(transitionShaderRevealLoc, patternWidth, patternHeight);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, target.texture);
+	glUniform1i(transitionShaderTextureLoc, 0);
+
+	RenderQuad(xDest, yDest, wDest, hDest, 0.0f, 0.0f, 0.0f, u0, 1.0f - v0, u1, 1.0f - v1);
+}
+
+void SDL3GraphicsBackend::ReleaseTransitionSurfaces()
+{
+	for (TransitionSurfaceTarget& target : transitionSurfaces)
+	{
+		if (target.framebuffer != 0) glDeleteFramebuffers(1, &target.framebuffer);
+		if (target.texture != 0) glDeleteTextures(1, &target.texture);
+		target = TransitionSurfaceTarget();
+	}
 }
 
 SDL_FRect SDL3GraphicsBackend::CalculateRenderTargetRect()

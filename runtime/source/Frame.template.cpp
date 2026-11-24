@@ -19,6 +19,8 @@ void GeneratedFrame{{ FRAME_INDEX }}::Initialize() {
 	Height = {{ FRAME_HEIGHT }};
 	BackgroundColor = {{ FRAME_BACKGROUND_COLOR }};
 
+	{{ FRAME_TRANSITIONS }}
+
 	{{ LAYER_INIT }}
 
 	auto& factory = ObjectFactory::Instance();

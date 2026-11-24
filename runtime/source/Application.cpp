@@ -1,6 +1,10 @@
 #include "Application.h"
 #include "FrameFactory.h"
 #include "Frame.h"
+#include "Transition.h"
+#include "GraphicsBackend.h"
+#include "AudioBackend.h"
+#include "PlatformBackend.h"
 #include <set>
 
 #ifdef NUCLEAR_BACKEND_SDL3
@@ -45,9 +49,13 @@ void Application::Initialize()
 
 void Application::Update()
 {
+	// while a transition runs the frame is frozen
+	if (UpdateTransition())
+		return;
+
 	RunState();
 
-	if (currentFrame == nullptr)
+	if (currentFrame == nullptr || transition != nullptr)
 	{
 		return;
 	}
@@ -65,7 +73,18 @@ void Application::Draw()
 	}
 
 	backend->graphics->BeginDrawing();
-	currentFrame->Draw();
+	if (transition != nullptr)
+	{
+		transition->Step(backend->platform->GetTicks());
+	}
+	else
+	{
+		currentFrame->Draw();
+		if (pendingFadeIn)
+		{
+			StartFadeIn();
+		}
+	}
 	backend->graphics->EndDrawing();
 }
 
@@ -104,7 +123,7 @@ void Application::Run()
 			backend->platform->Delay(targetFrameTime - frameTime);
 		}
 
-		if (currentState == GameState::EndApplication || currentFrame == nullptr)
+		if ((currentState == GameState::EndApplication && transition == nullptr && fadeOutCompleted) || currentFrame == nullptr)
 		{
 			break;
 		}
@@ -170,6 +189,15 @@ void Application::LoadFrame(int frameIndex)
 		frameIndex = 0;
 	}	
 	backend->platform->Log("Loading frame " + std::to_string(frameIndex));
+
+	hasPreviousFrameImage = false;
+	pendingFadeIn = false;
+	if (currentFrame != nullptr && backend->graphics->SupportsTransitions())
+	{
+		backend->graphics->CaptureTransitionSurface(TRANSITION_SURFACE_START);
+		hasPreviousFrameImage = true;
+	}
+
 	std::vector<unsigned int> oldImagesUsed;
 	std::vector<unsigned int> oldFontsUsed;
 	std::vector<unsigned int> oldSoundsUsed;
@@ -268,6 +296,8 @@ void Application::LoadFrame(int frameIndex)
 		backend->audio->LoadSound(sound);
 	}
 
+	pendingFadeIn = currentFrame->FadeIn != nullptr && backend->graphics->SupportsTransitions();
+
 	backend->platform->Log("Loaded frame " + std::to_string(frameIndex));
 	if (!GetAppData()->GetSampleOverFrame()) backend->audio->StopSample(-1, false);
 }
@@ -351,13 +381,117 @@ void Application::MergeGlobalObjectData(std::vector<ObjectGlobalData*> frameData
 	}
 }
 
+bool Application::StartFadeOut()
+{
+	GraphicsBackend* graphics = backend->graphics;
+	if (currentFrame == nullptr || currentFrame->FadeOut == nullptr || !graphics->SupportsTransitions())
+	{
+		return false;
+	}
+
+	const TransitionData& data = *currentFrame->FadeOut;
+	std::unique_ptr<Transition> fade = Transition::Create(data);
+	if (fade == nullptr)
+	{
+		backend->platform->Log("Unsupported fade-out transition " + data.Id);
+		return false;
+	}
+
+	// the render target still holds the last drawn image of the frame
+	graphics->CaptureTransitionSurface(TRANSITION_SURFACE_START);
+	graphics->FillTransitionSurface(TRANSITION_SURFACE_END, (data.Flags & TRANSITION_FLAG_COLOR) ? data.Color : 0x000000);
+
+	int width, height;
+	graphics->GetTransitionDisplaySize(width, height);
+	fade->Start(data, graphics, true, backend->platform->GetTicks(), width, height);
+	transition = std::move(fade);
+	return true;
+}
+
+void Application::StartFadeIn()
+{
+	pendingFadeIn = false;
+
+	GraphicsBackend* graphics = backend->graphics;
+	if (currentFrame == nullptr || currentFrame->FadeIn == nullptr || !graphics->SupportsTransitions())
+	{
+		return;
+	}
+
+	const TransitionData& data = *currentFrame->FadeIn;
+	std::unique_ptr<Transition> fade = Transition::Create(data);
+	if (fade == nullptr)
+	{
+		backend->platform->Log("Unsupported fade-in transition " + data.Id);
+		return;
+	}
+
+	// the frame has just been drawn once: that is where the transition ends
+	graphics->CaptureTransitionSurface(TRANSITION_SURFACE_END);
+	if (data.Flags & TRANSITION_FLAG_COLOR)
+	{
+		graphics->FillTransitionSurface(TRANSITION_SURFACE_START, data.Color);
+	}
+	else if (!hasPreviousFrameImage)
+	{
+		graphics->FillTransitionSurface(TRANSITION_SURFACE_START, appData->GetBorderColor());
+	}
+
+	int width, height;
+	graphics->GetTransitionDisplaySize(width, height);
+	unsigned int now = backend->platform->GetTicks();
+	fade->Start(data, graphics, false, now, width, height);
+	fade->Step(now);
+	transition = std::move(fade);
+}
+
+bool Application::UpdateTransition()
+{
+	if (transition == nullptr)
+	{
+		return false;
+	}
+
+	// frame time does not advance during transitions
+	backend->platform->GetTimeDelta();
+	backend->audio->UpdateSample();
+
+	if (!transition->IsCompleted(backend->platform->GetTicks()))
+	{
+		return true;
+	}
+
+	transition->Finish();
+	bool wasFadeOut = transition->IsFadeOut();
+	transition.reset();
+
+	// a finished fade-out lets the queued frame change run now
+	if (wasFadeOut)
+	{
+		fadeOutCompleted = true;
+	}
+	return false;
+}
+
 void Application::RunState()
 {
+	bool changesFrame = currentState != GameState::Running && currentState != GameState::StartOfFrame;
+	if (changesFrame && currentFrame != nullptr && !fadeOutCompleted)
+	{
+		if (StartFadeOut())
+		{
+			// the state change is carried out once the fade-out has finished
+			return;
+		}
+		fadeOutCompleted = true;
+	}
+
 	switch (currentState)
 	{
 		case GameState::Running:
 			break;
 		case GameState::RestartApplication:
+			fadeOutCompleted = false;
 			globalObjectData.clear();
 			LoadFrame(0);
 			currentState = GameState::StartOfFrame;
@@ -366,18 +500,22 @@ void Application::RunState()
 			currentState = GameState::Running;
 			break;
 		case GameState::NextFrame:
+			fadeOutCompleted = false;
 			LoadFrame(currentFrame->Index + 1);
 			currentState = GameState::StartOfFrame;
 			break;
 		case GameState::PreviousFrame:
+			fadeOutCompleted = false;
 			LoadFrame(currentFrame->Index - 1);
 			currentState = GameState::StartOfFrame;
 			break;
 		case GameState::JumpToFrame:
+			fadeOutCompleted = false;
 			LoadFrame(newFrameIndex);
 			currentState = GameState::StartOfFrame;
 			break;
 		case GameState::RestartFrame:
+			fadeOutCompleted = false;
 			LoadFrame(currentFrame->Index);
 			currentState = GameState::StartOfFrame;
 			break;

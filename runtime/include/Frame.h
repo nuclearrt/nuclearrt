@@ -13,6 +13,7 @@
 #include "ObjectInstance.h"
 #include "ObjectSelector.h"
 #include "Timer.h"
+#include "Transition.h"
 
 class Frame {
 public:
@@ -31,6 +32,9 @@ public:
 	int Height = 0;
 
 	int BackgroundColor = 0;
+
+	std::shared_ptr<TransitionData> FadeIn;
+	std::shared_ptr<TransitionData> FadeOut;
 
 	std::vector<Layer> Layers;
 

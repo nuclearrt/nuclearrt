@@ -17,6 +17,7 @@
 #include "ObjectGlobalData.h"
 
 class Frame;
+class Transition;
 
 class Application
 {
@@ -50,6 +51,7 @@ public:
 
 	void QueueStateChange(GameState newState, int frameIndex = -1);
 	GameState GetCurrentState() const { return currentState; }
+	bool IsTransitionRunning() const { return transition != nullptr || pendingFadeIn; }
 
 	CValue Random(CValue max);
 	CValue Random(short max);
@@ -74,6 +76,15 @@ private:
 	GameState currentState;
 	int newFrameIndex;
 	void RunState();
+
+	// frame transitions
+	std::unique_ptr<Transition> transition;
+	bool pendingFadeIn = false;
+	bool fadeOutCompleted = false;
+	bool hasPreviousFrameImage = false;
+	bool StartFadeOut();
+	void StartFadeIn();
+	bool UpdateTransition();
 
 	std::vector<ObjectGlobalData*> globalObjectData;
 	void MergeGlobalObjectData(std::vector<ObjectGlobalData*> frameData);

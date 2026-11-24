@@ -34,4 +34,11 @@ public:
 	virtual void LoadFont(int id) {}
 	virtual void UnloadFont(int id) {}
 	virtual void DrawText(FontInfo *fontInfo, int x, int y, int width, int height, unsigned char horizontalAlignment, unsigned char verticalAlignment, int color, const std::string &text, int objectHandle = -1, int rgbCoefficient = 0xFFFFFF, int effect = 0, unsigned char effectParameter = 0, EffectInstance* effectInstance = nullptr) {}
+
+	virtual bool SupportsTransitions() { return false; }
+	virtual void GetTransitionDisplaySize(int& width, int& height) { width = 0; height = 0; }
+	virtual void CaptureTransitionSurface(int surface) {}
+	virtual void FillTransitionSurface(int surface, int color) {}
+	virtual void DrawTransitionSurface(int surface, float xDest, float yDest, float wDest, float hDest, float u0, float v0, float u1, float v1, float alpha, int pattern, float patternWidth, float patternHeight, float surfaceWidth, float surfaceHeight) {}
+	virtual void ReleaseTransitionSurfaces() {}
 };

@@ -64,6 +64,13 @@ public:
 	void UnloadFont(int id) override;
 	void DrawText(FontInfo *fontInfo, int x, int y, int width, int height, unsigned char horizontalAlignment, unsigned char verticalAlignment, int color, const std::string &text, int objectHandle = -1, int rgbCoefficient = 0xFFFFFF, int effect = 0, unsigned char effectParameter = 0, EffectInstance* effectInstance = nullptr) override;
 
+	bool SupportsTransitions() override { return transitionShaderProgram != 0; }
+	void GetTransitionDisplaySize(int& width, int& height) override;
+	void CaptureTransitionSurface(int surface) override;
+	void FillTransitionSurface(int surface, int color) override;
+	void DrawTransitionSurface(int surface, float xDest, float yDest, float wDest, float hDest, float u0, float v0, float u1, float v1, float alpha, int pattern, float patternWidth, float patternHeight, float surfaceWidth, float surfaceHeight) override;
+	void ReleaseTransitionSurfaces() override;
+
 	SDL_FRect CalculateRenderTargetRect();
 	SDL_Window* GetSDLWindow() const { return window; }
 private:
@@ -117,6 +124,23 @@ private:
 	GLint gradientShaderCircleClipLoc = -1;
 
 	std::unordered_map<std::string, EffectShader> thirdPartyShaders;
+
+	GLuint transitionShaderProgram = 0;
+	GLint transitionShaderMVPLoc = -1;
+	GLint transitionShaderTextureLoc = -1;
+	GLint transitionShaderAlphaLoc = -1;
+	GLint transitionShaderPatternLoc = -1;
+	GLint transitionShaderSizeLoc = -1;
+	GLint transitionShaderRevealLoc = -1;
+
+	struct TransitionSurfaceTarget {
+		GLuint framebuffer = 0;
+		GLuint texture = 0;
+		int width = 0;
+		int height = 0;
+	};
+	TransitionSurfaceTarget transitionSurfaces[2];
+	TransitionSurfaceTarget* EnsureTransitionSurface(int surface);
 
 	GLuint sceneBackgroundTexture = 0;
 	GLuint sceneBackgroundFBO = 0;
