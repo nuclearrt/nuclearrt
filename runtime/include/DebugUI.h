@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 
 #include <string>
 #include <memory>

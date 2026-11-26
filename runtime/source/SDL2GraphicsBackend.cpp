@@ -15,7 +15,7 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 #include "DebugUI.h"
 #include <imgui_impl_sdl2.h>
 #endif
@@ -56,7 +56,7 @@ void SDL2GraphicsBackend::Initialize() {
 
 void SDL2GraphicsBackend::Deinitialize()
 {
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	DEBUG_UI.Shutdown();
 #endif
 
@@ -130,7 +130,7 @@ void SDL2GraphicsBackend::BeginDrawing()
 		SDL_RenderClear(renderer);
 	}
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	DEBUG_UI.BeginFrame();
 #endif
 }
@@ -141,7 +141,7 @@ void SDL2GraphicsBackend::EndDrawing()
 		return;
 	}
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	DEBUG_UI.EndFrame();
 #endif
 

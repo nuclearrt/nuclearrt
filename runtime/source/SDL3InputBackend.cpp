@@ -9,14 +9,14 @@
 #include <algorithm>
 #include <SDL3/SDL.h>
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 #include "DebugUI.h"
 #include "imgui.h"
 #endif
 
 void SDL3InputBackend::GetKeyboardState(uint8_t* outBuffer)
 {
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	if (DEBUG_UI.IsEnabled() && ImGui::GetIO().WantCaptureKeyboard) return;
 #endif
 
@@ -117,7 +117,7 @@ int SDL3InputBackend::GetMouseWheelMove()
 
 uint32_t SDL3InputBackend::GetMouseState()
 {
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 	if (DEBUG_UI.IsEnabled() && ImGui::GetIO().WantCaptureMouse) return 0;
 #endif
 
