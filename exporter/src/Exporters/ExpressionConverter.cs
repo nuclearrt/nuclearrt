@@ -206,8 +206,7 @@ public class ExpressionConverter
 	{
 		return eventBase != null
 			&& eventBase.ObjectType > 0
-			&& expression.ObjectInfo == eventBase.ObjectInfo
-			&& expression.ObjectInfoList == eventBase.ObjectInfoList;
+			&& expression.ObjectInfo == eventBase.ObjectInfo;
 	}
 
 	private static StringBuilder HandleRuntimeObjectExpr(StringBuilder stringBuilder, Expression expression, EventBase eventBase = null)
