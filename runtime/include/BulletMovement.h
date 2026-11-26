@@ -10,6 +10,8 @@ public:
 
 	short speed;
 	bool useInstanceDirection;
+	float subPixelX = 0;
+	float subPixelY = 0;
 
 	CValue GetRealSpeed() override { return CValue(speed); }
 	int GetMinimumSpeed() override { return 0; }

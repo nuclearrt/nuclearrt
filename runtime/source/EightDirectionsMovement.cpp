@@ -21,8 +21,7 @@ void EightDirectionsMovement::Update(float deltaTime)
 	int wishX = 0;
 	int wishY = 0;
 
-	//this sucks so bad
-	deltaTime *= 10;
+	const float movementBaseTime = deltaTime * 60.0f;
 
 	if (Application::Instance().GetInput()->IsControlsDown(Player, 1)) // up
 	{
@@ -86,22 +85,28 @@ void EightDirectionsMovement::Update(float deltaTime)
 	//accelerate
 	if (moved)
 	{
-		realSpeed += Acceleration * deltaTime;
+		realSpeed += static_cast<float>(GetAcceleratorValue(Acceleration)) * movementBaseTime / 256.0f;
 		if (realSpeed > Speed)
 			realSpeed = Speed;
 	}
 	else // decelerate
 	{
-		realSpeed -= Deceleration * deltaTime;
+		realSpeed -= static_cast<float>(GetAcceleratorValue(Deceleration)) * movementBaseTime / 256.0f;
 		if (realSpeed < 0)
 			realSpeed = 0;
 	}
 	
-	float xDifference = realSpeed * deltaTime * cos(movementDirection * 3.14159265358979323846f / 16);
-	float yDifference = -realSpeed * deltaTime * sin(movementDirection * 3.14159265358979323846f / 16);
+	const double deltaX = static_cast<double>(GetCosinus32(movementDirection & 31)) * static_cast<int>(realSpeed) * movementBaseTime / 2048.0;
+	const double deltaY = static_cast<double>(GetSinus32(movementDirection & 31)) * static_cast<int>(realSpeed) * movementBaseTime / 2048.0;
 
-	Instance->SetX(Instance->GetX() + xDifference);
-	Instance->SetY(Instance->GetY() + yDifference);
+	const double nextX = static_cast<double>(Instance->GetX().GetIntValue()) + subPixelX + deltaX;
+	const double nextY = static_cast<double>(Instance->GetY().GetIntValue()) + subPixelY + deltaY;
+
+	Instance->SetX(static_cast<int>(nextX));
+	Instance->SetY(static_cast<int>(nextY));
+
+	subPixelX = static_cast<float>(nextX - static_cast<int>(nextX));
+	subPixelY = static_cast<float>(nextY - static_cast<int>(nextY));
 
 	if (!((Active*)Instance)->AutomaticRotation ) {
 		((Active*)Instance)->animations.SetCurrentDirection(movementDirection);

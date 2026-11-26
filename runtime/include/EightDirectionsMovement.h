@@ -16,6 +16,8 @@ public:
 	int Directions;
 
 	float realSpeed = 0;
+	float subPixelX = 0;
+	float subPixelY = 0;
 
 	void Initialize() override;
 	CValue GetRealSpeed() override { return CValue(realSpeed); }

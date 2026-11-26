@@ -27,13 +27,19 @@ void BulletMovement::OnEnabled()
 
 void BulletMovement::Update(float deltaTime)
 {
-	deltaTime *= 10;
+	const float movementBaseTime = deltaTime * 60.0f;
 
-	float xDifference = speed * deltaTime * cos(movementDirection * 3.14159265358979323846f / 16);
-	float yDifference = -speed * deltaTime * sin(movementDirection * 3.14159265358979323846f / 16);
+	const double deltaX = static_cast<double>(GetCosinus32(movementDirection & 31)) * speed * movementBaseTime / 2048.0;
+	const double deltaY = static_cast<double>(GetSinus32(movementDirection & 31)) * speed * movementBaseTime / 2048.0;
 
-	Instance->SetX(Instance->GetX() + xDifference);
-	Instance->SetY(Instance->GetY() + yDifference);
+	const double nextX = static_cast<double>(Instance->GetX().GetIntValue()) + subPixelX + deltaX;
+	const double nextY = static_cast<double>(Instance->GetY().GetIntValue()) + subPixelY + deltaY;
+
+	Instance->SetX(static_cast<int>(nextX));
+	Instance->SetY(static_cast<int>(nextY));
+
+	subPixelX = static_cast<float>(nextX - static_cast<int>(nextX));
+	subPixelY = static_cast<float>(nextY - static_cast<int>(nextY));
 
 	if (!((Active*)Instance)->AutomaticRotation ) {
 		((Active*)Instance)->animations.SetCurrentDirection(movementDirection);
