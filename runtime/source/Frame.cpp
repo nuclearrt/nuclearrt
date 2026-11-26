@@ -629,25 +629,25 @@ ObjectInstance* Frame::CreateInstance(ObjectInstance* createdInstance, short x, 
 	//init movement and extensions
 	if (createdInstance->Type == 2) // Common object
 	{
-		for (auto& [handle, movement] : ((Active*)createdInstance)->movements.items)
+		auto* active = (Active*)createdInstance;
+		for (Movement* movement : active->movements.items)
 		{
 			movement->Instance = createdInstance;
 			movement->Initialize();
-
-			if (handle == 0) movement->OnEnabled();
 		}
+		active->movements.items[0]->OnEnabled();
 
-		((Active*)createdInstance)->animations.AutomaticRotation = ((Active*)createdInstance)->AutomaticRotation;
+		active->animations.AutomaticRotation = active->AutomaticRotation;
 	}
 	else if (createdInstance->Type == 5 || createdInstance->Type == 6 || createdInstance->Type == 7) // Counter
 	{
-		for (auto& [handle, movement] : ((CounterBase*)createdInstance)->movements.items)
+		auto* counter = (CounterBase*)createdInstance;
+		for (Movement* movement : counter->movements.items)
 		{
 			movement->Instance = createdInstance;
 			movement->Initialize();
-
-			if (handle == 0) movement->OnEnabled();
 		}
+		counter->movements.items[0]->OnEnabled();
 	}
 	else if (createdInstance->Type >= 32) // Extension
 	{

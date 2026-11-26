@@ -51,8 +51,8 @@ public class ShootTowardAction : ActionBase
 		result.AppendLine($"    shootDirection = (int)std::round(angle * (32.0 / (2.0 * 3.14159265358979323846)));");
 		result.AppendLine($"    shootDirection = shootDirection & 31;");
 
-		result.AppendLine($"    ((Active*)newCreatedInstance)->movements.items.clear();");
-		result.AppendLine($"    ((Active*)newCreatedInstance)->movements.items.insert(std::pair<int, Movement*>(0, new BulletMovement(0, true, (1 << shootDirection), {shoot.ShootSpeed})));");
+		result.AppendLine($"    ((Active*)newCreatedInstance)->movements.Deinitialize();");
+		result.AppendLine($"    ((Active*)newCreatedInstance)->movements.items.push_back(new BulletMovement(0, true, (1 << shootDirection), {shoot.ShootSpeed}));");
 		result.AppendLine($"    ((Active*)newCreatedInstance)->movements.GetCurrentMovement()->Instance = newCreatedInstance;");
 		result.AppendLine($"    ((Active*)newCreatedInstance)->movements.GetCurrentMovement()->Initialize();");
 		result.AppendLine($"    ((Active*)newCreatedInstance)->movements.GetCurrentMovement()->OnEnabled();");

@@ -301,30 +301,42 @@ public class ObjectInfoExporter : BaseExporter
 	{
 		var result = new StringBuilder();
 
-		result.Append("std::make_shared<const std::unordered_map<int, Sequence*>>(");
-		result.Append("std::unordered_map<int, Sequence*>{");
+		result.Append("std::make_shared<const std::vector<Sequence*>>(");
+		result.Append("std::vector<Sequence*>{");
 
-		var sequences = new List<string>();
-		foreach (var sequence in common.Animations.AnimationDict)
+		var animDict = common.Animations.AnimationDict;
+		int maxSeqKey = animDict.Count > 0 ? animDict.Keys.Max() : -1;
+		var sequences = new List<string>(maxSeqKey + 1);
+		for (int seqIdx = 0; seqIdx <= maxSeqKey; seqIdx++)
 		{
-			var sequenceStr = new StringBuilder();
-			sequenceStr.Append($"std::pair<int, Sequence*>({sequence.Key}, ");
-			sequenceStr.Append($"new Sequence(");
-			sequenceStr.Append("std::unordered_map<int, Direction*>{");
-
-			var directions = new List<string>();
-			foreach (var direction in sequence.Value.DirectionDict.Values)
+			if (!animDict.TryGetValue(seqIdx, out var animValue))
 			{
-				int index = sequence.Value.DirectionDict.FirstOrDefault(x => x.Value == direction).Key;
-					directions.Add(
-						"std::pair<int, Direction*>(" + index + ", new Direction(" + index + ", " + direction.MinSpeed + ", " +
+				sequences.Add("nullptr");
+				continue;
+			}
+
+			var sequenceStr = new StringBuilder();
+			sequenceStr.Append("new Sequence(std::array<Direction*, Direction::MAX_DIRECTIONS>{");
+
+			var dirDict = animValue.DirectionDict;
+			var directions = new string[32];
+			for (int dirIdx = 0; dirIdx < 32; dirIdx++)
+			{
+				if (dirDict.TryGetValue(dirIdx, out var direction))
+				{
+					directions[dirIdx] =
+						"new Direction(" + dirIdx + ", " + direction.MinSpeed + ", " +
 						direction.MaxSpeed + ", " + (direction.Repeat == 0).ToString().ToLower() + ", " + direction.BackTo + ", " +
-						"std::vector<unsigned int>{" + string.Join(",", direction.Frames) + "}))"
-					);
+						"std::vector<unsigned int>{" + string.Join(",", direction.Frames) + "})";
+				}
+				else
+				{
+					directions[dirIdx] = "nullptr";
+				}
 			}
 
 			sequenceStr.Append(string.Join(", ", directions));
-			sequenceStr.Append("}))");
+			sequenceStr.Append("})");
 			sequences.Add(sequenceStr.ToString());
 		}
 
@@ -400,7 +412,7 @@ public class ObjectInfoExporter : BaseExporter
 		if (common.Movements == null) return string.Empty;
 
 		var result = new StringBuilder();
-		result.Append("Movements(std::unordered_map<int, Movement*>{");
+		result.Append("Movements(std::vector<Movement*>{");
 		for (int i = 0; i < common.Movements.Items.Count; i++)
 		{
 			var movement = common.Movements.Items[i];
@@ -430,7 +442,7 @@ public class ObjectInfoExporter : BaseExporter
 
 			if (movementClassName != null)
 			{
-				result.Append($"std::pair<int, Movement*>({i}, new {movementClassName}({movement.Player - 1}, {movement.MovingAtStart}, {movement.DirectionAtStart}");
+				result.Append($"new {movementClassName}({movement.Player - 1}, {movement.MovingAtStart}, {movement.DirectionAtStart}");
 
 				if (movement.Loader is EightDirections eightDirections)
 				{
@@ -450,7 +462,7 @@ public class ObjectInfoExporter : BaseExporter
 					result.Append($"std::vector<PathNode>{{{string.Join(",", pathMovement.Steps.Select(node => $"PathNode({node.Speed}, {node.Direction}, {node.DestinationX}, {node.DestinationY})"))}}}");
 				}
 
-				result.Append("))");
+				result.Append(")");
 
 				if (i != common.Movements.Items.Count - 1)
 					result.Append(", ");
