@@ -4,6 +4,8 @@
 #include "ObjectInstance.h"
 #include <vector>
 #include <memory>
+#include <algorithm>
+#include <cmath>
 
 #include "Animations.h"
 #include "AlterableValues.h"
@@ -72,19 +74,19 @@ public:
 	}
 
 	CValue GetXLeft() const {
-		return GetX() - animations.GetXHotspot();
+		return GetX() + Edge(false, false);
 	}
 
 	CValue GetXRight() const {
-		return GetX() - animations.GetXHotspot() + animations.GetWidth();
+		return GetX() + Edge(false, true);
 	}
 
 	CValue GetYTop() const {
-		return GetY() - animations.GetYHotspot();
+		return GetY() + Edge(true, false);
 	}
 
 	CValue GetYBottom() const {
-		return GetY() - animations.GetYHotspot() + animations.GetHeight();
+		return GetY() + Edge(true, true);
 	}
 	
 	void SetXScale(const CValue& xScale) {
@@ -99,6 +101,17 @@ public:
 	}
 
 private:
+	int Edge(bool vertical, bool max) const {
+		float a = GetAngle() * (3.14159265358979f / 180.0f);
+		float x0 = -animations.GetXHotspot() * xScale, x1 = x0 + animations.GetWidth() * xScale;
+		float y0 = -animations.GetYHotspot() * yScale, y1 = y0 + animations.GetHeight() * yScale;
+		float p = vertical ? -std::sin(a) : std::cos(a);
+		float q = vertical ? std::cos(a) : std::sin(a);
+		float e = max ? std::max(x0 * p, x1 * p) + std::max(y0 * q, y1 * q)
+		              : std::min(x0 * p, x1 * p) + std::min(y0 * q, y1 * q);
+		return (int)std::lround(e);
+	}
+
 	float xScale = 1.0f;
 	float yScale = 1.0f;
 };
