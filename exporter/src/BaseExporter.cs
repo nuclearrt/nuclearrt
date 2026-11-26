@@ -8,6 +8,7 @@ public abstract class BaseExporter
 
 	protected GameData GameData => _exporter.GameData;
 	protected MFAData MfaData => _exporter.MfaData;
+	protected ProjectConfig Config => _exporter.Config;
 	protected DirectoryInfo RuntimeBasePath => _exporter.RuntimeBasePath;
 	protected DirectoryInfo OutputPath => _exporter.OutputPath;
 	protected int CurrentFrame => _exporter.CurrentFrame;

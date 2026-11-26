@@ -14,6 +14,7 @@ public class IconExporter : BaseExporter
 		WriteRawIcons();
 		WriteWindowsIcons();
 		WriteMacIcons();
+		WriteSwitchIcon();
 	}
 
 	void WriteRawIcons()
@@ -95,5 +96,27 @@ public class IconExporter : BaseExporter
 
 		//write in big endian
 		writer.Write(BitConverter.GetBytes((int)writer.BaseStream.Length).Reverse().ToArray());
+	}
+
+	void WriteSwitchIcon()
+	{
+		string rawDir = Path.Combine(OutputPath.FullName, "icons", "raw");
+		string source = Path.Combine(rawDir, "256.png");
+		if (!File.Exists(source))
+		{
+			// fallback to the largest icon
+			source = Directory.GetFiles(rawDir, "*.png").OrderByDescending(f => int.TryParse(Path.GetFileNameWithoutExtension(f), out int w) ? w : 0).FirstOrDefault() ?? "";
+			if (string.IsNullOrWhiteSpace(source)) return;
+		}
+
+		using Bitmap icon = (Bitmap)Bitmap.FromFile(source);
+		using Bitmap jpg = new(256, 256);
+		using (Graphics g = Graphics.FromImage(jpg))
+		{
+			g.Clear(Color.Black);
+			g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+			g.DrawImage(icon, 0, 0, 256, 256);
+		}
+		jpg.Save(Path.Combine(OutputPath.FullName, "icons", "switch.jpg"), System.Drawing.Imaging.ImageFormat.Jpeg);
 	}
 }

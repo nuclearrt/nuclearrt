@@ -11,6 +11,7 @@ public class Exporter
 	private readonly IFileReader _mfaReader;
 	private readonly DirectoryInfo _runtimeBasePath;
 	private readonly DirectoryInfo _outputPath;
+	private readonly ProjectConfig _config;
 
 	private readonly AppDataExporter _appDataExporter;
 	private readonly ObjectInfoExporter _objectInfoExporter;
@@ -27,14 +28,16 @@ public class Exporter
 	public MFAData MfaData => (_mfaReader as MFAFileReader).mfa;
 	public DirectoryInfo RuntimeBasePath => _runtimeBasePath;
 	public DirectoryInfo OutputPath => _outputPath;
+	public ProjectConfig Config => _config;
 	public int CurrentFrame { get; set; } = -1;
 
-	public Exporter(IFileReader ccnReader, IFileReader mfaReader, DirectoryInfo runtimeBasePath, DirectoryInfo outputPath)
+	public Exporter(IFileReader ccnReader, IFileReader mfaReader, ProjectConfig config, DirectoryInfo runtimeBasePath, DirectoryInfo outputPath)
 	{
 		Instance = this;
 
 		_ccnReader = ccnReader;
 		_mfaReader = mfaReader;
+		_config = config;
 		_runtimeBasePath = runtimeBasePath;
 		_outputPath = outputPath;
 

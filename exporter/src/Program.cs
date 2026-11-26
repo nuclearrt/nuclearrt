@@ -126,9 +126,11 @@ namespace NuclearRTExporter
 				MFAFileReader mfaReader = new MFAFileReader();
 				mfaReader.LoadGame(ccnReader.game.editorFilename);
 
+				ProjectConfig config = ProjectConfig.Load(ccnReader.game.editorFilename, ccnReader.getGameData(), mfaReader.mfa);
+
 				// Export and rewrite game data in the runtime code
 				Log("Exporting with C++ runtime...");
-				Exporter exporter = new Exporter(ccnReader, mfaReader, runtimeBaseDir, outputDir);
+				Exporter exporter = new Exporter(ccnReader, mfaReader, config, runtimeBaseDir, outputDir);
 				exporter.Export();
 
 				// Extract the resources from the game data and write them to a pak file

@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.14)
 project(nuclearrt-runtime C CXX)
 set(FRIENDLY_NAME "NuclearRT-Runtime")
 set(DOMAIN_NAME "com.nuclearrt.runtime")
+set(APP_VERSION "1.0.0")
+set(APP_AUTHOR "NuclearRT")
+set(APP_COPYRIGHT "")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -60,8 +63,9 @@ if(PLATFORM_MACOS OR PLATFORM_IOS)
         PRODUCT_NAME "${FRIENDLY_NAME}"
         MACOSX_BUNDLE_EXECUTABLE_NAME "${PROJECT_NAME}"
         MACOSX_BUNDLE_BUNDLE_NAME "${FRIENDLY_NAME}"
-        MACOSX_BUNDLE_BUNDLE_VERSION "1.0.0"
-        MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${APP_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${APP_VERSION}"
+        MACOSX_BUNDLE_COPYRIGHT "${APP_COPYRIGHT}"
         MACOSX_BUNDLE_GUI_IDENTIFIER "${DOMAIN_NAME}"
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${DOMAIN_NAME}"
         XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "YES"
@@ -69,6 +73,8 @@ if(PLATFORM_MACOS OR PLATFORM_IOS)
     )
 elseif(PLATFORM_WINDOWS)
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${IMGUI_SOURCES} resources.rc)
+    # Always recompile the resource script
+    set_source_files_properties(resources.rc PROPERTIES VS_SETTINGS "MinimalRebuildFromTracking=false")
 else()
     add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${IMGUI_SOURCES})
 endif()
@@ -105,17 +111,23 @@ include(cmake/lz4.cmake)
 if(PLATFORM_SWITCH)
     nx_generate_nacp(
         OUTPUT ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.nacp
-        NAME "NuclearRT Runtime"
-        AUTHOR "shishkabob"
-        VERSION "1.0.0"
+        NAME "${FRIENDLY_NAME}"
+        AUTHOR "${APP_AUTHOR}"
+        VERSION "${APP_VERSION}"
     )
 
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/romfs)
+
+    set(SWITCH_ICON_ARGS)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/icons/switch.jpg")
+        set(SWITCH_ICON_ARGS ICON "${CMAKE_CURRENT_SOURCE_DIR}/icons/switch.jpg")
+    endif()
 
     nx_create_nro(${PROJECT_NAME}
         OUTPUT ${CMAKE_BINARY_DIR}/bin/${PROJECT_NAME}.nro
         NACP ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.nacp
         ROMFS ${CMAKE_BINARY_DIR}/romfs
+        ${SWITCH_ICON_ARGS}
     )
 endif()
 
