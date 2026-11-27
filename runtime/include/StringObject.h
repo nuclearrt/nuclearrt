@@ -32,6 +32,13 @@ public:
 		return GetTextOfParagraph(CValue(CurrentParagraph));
 	}
 
+	const std::string& GetTextRef() const
+	{
+		if (CurrentParagraph == -1)
+			return AlterableText;
+		return Paragraphs[CurrentParagraph].Text;
+	}
+
 	CValue GetTextOfParagraph(const CValue& paragraph)
 	{
 		if (paragraph.GetIntValue() == -1)
