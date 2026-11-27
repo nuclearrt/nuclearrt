@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <memory>
-#include <unordered_map>
+#include <vector>
 
 #include "CValue.h"
 #include "Sequence.h"
@@ -13,7 +13,7 @@ class ObjectInstance;
 class Animations {
 public:
 	Animations() = default;
-	Animations(std::shared_ptr<const std::unordered_map<int, Sequence*>> sequences);
+	Animations(std::shared_ptr<const std::vector<Sequence*>> sequences);
 
 	bool IsSequencePlaying(int sequence) const;
 	bool IsSequenceOver(int sequence) const;
@@ -61,7 +61,7 @@ public:
 	bool AutomaticRotation = false;
 private:
 	ObjectInstance* owner = nullptr;
-	std::shared_ptr<const std::unordered_map<int, Sequence*>> Sequences;
+	std::shared_ptr<const std::vector<Sequence*>> Sequences;
 	float CurrentFrameTime = 0.0f;
 
 	int RequestedSequenceIndex = 0;
@@ -85,7 +85,7 @@ private:
 	int automaticRotationDirection = -1;
 
 	int lastSequenceOverIndex = -1;
-	mutable std::unordered_map<int, bool> SequenceOverEvents;
+	int sequenceOverThisTick = -1;
 
 	int GetLowestDirectionIndex(const Sequence* sequence) const;
 	int GetNearestDirectionIndex(const Sequence* sequence, int directionIndex) const;

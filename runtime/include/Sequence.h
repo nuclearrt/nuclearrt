@@ -3,11 +3,12 @@
 #include <utility>
 #include "Direction.h"
 #include <vector>
+#include <array>
 
 class Sequence {
 public:
-    Sequence(std::unordered_map<int, Direction*> directions)
-        : Directions(std::move(directions)) {}
+	Sequence(std::array<Direction*, Direction::MAX_DIRECTIONS> directions)
+		: Directions(std::move(directions)) {}
 
-    std::unordered_map<int, Direction*> Directions;
+	std::array<Direction*, Direction::MAX_DIRECTIONS> Directions;
 }; 

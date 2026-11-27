@@ -1,7 +1,5 @@
 #pragma once
-
-#include <unordered_map>
-#include <memory>
+#include <vector>
 
 #include "Movement.h"
 
@@ -9,65 +7,58 @@ class Movements
 {
 public:
 	Movements() = default;
-	Movements(std::unordered_map<int, Movement*> movementItems) : items(std::move(movementItems)) {
+	Movements(std::vector<Movement*> movementItems)
+		: items(std::move(movementItems)), currentMovementIndex(0) {}
+
+	void Deinitialize() {
+		if (Movement* mvt = GetCurrentMovement()) {
+			mvt->OnDisabled();
+		}
+
+		for (auto& movement : items) delete movement;
+		items.clear();
 		currentMovementIndex = 0;
 	}
 
-	void Deinitialize() {
-		GetCurrentMovement()->OnDisabled();
-
-		for (auto& [index, movement] : items) delete movement;
-		items.clear();
-	}
-
-	std::unordered_map<int, Movement*> items;
+	std::vector<Movement*> items;
 	unsigned int currentMovementIndex = 0;
 
 	void Update(float deltaTime) {
-		if (items.empty() || items.find(currentMovementIndex) == items.end()) return;
-		items.at(currentMovementIndex)->Update(deltaTime);
+		Movement* mvt = GetCurrentMovement();
+		if (!mvt) return;
+		mvt->Update(deltaTime);
 	}
 
 	void SetMovement(const CValue& index) {
-		if (items.find(currentMovementIndex) != items.end()) {
-			items.at(currentMovementIndex)->OnDisabled();
+		int newMovementIndex = index.GetIntValue();
+		if (newMovementIndex < 0 || static_cast<size_t>(newMovementIndex) >= items.size()) return;
+
+		Movement* oldmvt = GetCurrentMovement();
+		if (oldmvt) {
+			oldmvt->OnDisabled();
 		}
-
-		currentMovementIndex = index.GetIntValue();
-
-		if (items.find(currentMovementIndex) != items.end()) {
-			items.at(currentMovementIndex)->OnEnabled();
-		}	
+		currentMovementIndex = static_cast<unsigned int>(newMovementIndex);
+		items[currentMovementIndex]->OnEnabled();
 	}
 
 	void NextMovement() {
-		if (items.empty() || items.find(currentMovementIndex) == items.end()) return;
+		if (static_cast<size_t>(currentMovementIndex) + 1 >= items.size()) return;
 
-		if (currentMovementIndex < items.size() - 1) {
-			currentMovementIndex++;
-		} else {
-			return;
-		}
-
-		items.at(currentMovementIndex - 1)->OnDisabled();
-		items.at(currentMovementIndex)->OnEnabled();
+		items[currentMovementIndex]->OnDisabled();
+		currentMovementIndex++;
+		items[currentMovementIndex]->OnEnabled();
 	}
 
 	void PreviousMovement() {
-		if (items.empty() || items.find(currentMovementIndex) == items.end()) return;
+		if (currentMovementIndex == 0 || currentMovementIndex >= items.size()) return;
 
-		if (currentMovementIndex > 0) {
-			currentMovementIndex--;
-		} else {
-			return;
-		}
-
-		items.at(currentMovementIndex + 1)->OnDisabled();
-		items.at(currentMovementIndex)->OnEnabled();
+		items[currentMovementIndex]->OnDisabled();
+		currentMovementIndex--;
+		items[currentMovementIndex]->OnEnabled();
 	}
 
 	Movement* GetCurrentMovement() {
-		if (!items.empty() && items.find(currentMovementIndex) != items.end()) return items.find(currentMovementIndex)->second;
+		if (currentMovementIndex < items.size()) return items[currentMovementIndex];
 		return nullptr;
 	}
 };
