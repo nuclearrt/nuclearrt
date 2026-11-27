@@ -1,8 +1,12 @@
+option(NUCLEAR_DEBUG_UI "Enable the in-application Debug UI toggle (always enabled in Debug)" OFF)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(_DEBUG)
 endif()
 
 if(NOT PLATFORM_WEB)
+    add_compile_definitions("$<$<OR:$<BOOL:${NUCLEAR_DEBUG_UI}>,$<CONFIG:Debug>>:NUCLEAR_DEBUG_UI>")
+
     set(IMGUI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui")
     set(IMGUI_SOURCES
         ${IMGUI_PATH}/imgui.cpp

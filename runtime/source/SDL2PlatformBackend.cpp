@@ -10,7 +10,7 @@
 
 #include <SDL.h>
 
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 #include "DebugUI.h"
 #include <imgui_impl_sdl2.h>
 #endif
@@ -34,7 +34,7 @@ bool SDL2PlatformBackend::ShouldQuit()
 {
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
-#ifdef _DEBUG
+#ifdef NUCLEAR_DEBUG_UI
 		// Process ImGui events
 		if (DEBUG_UI.IsEnabled()) {
 			ImGui_ImplSDL2_ProcessEvent(&event);
