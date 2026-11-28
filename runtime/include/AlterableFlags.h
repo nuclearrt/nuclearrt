@@ -7,6 +7,8 @@
 class AlterableFlags
 {
 public:
+	static const AlterableFlags Empty;
+
 	AlterableFlags() = default;
 	AlterableFlags(const std::vector<bool>& flags) : Flags(flags) {}
 
@@ -38,3 +40,5 @@ public:
 private:
 	std::vector<bool> Flags;
 };
+
+inline const AlterableFlags AlterableFlags::Empty{};

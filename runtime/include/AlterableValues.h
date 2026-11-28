@@ -7,6 +7,8 @@
 class AlterableValues
 {
 public:
+	static const AlterableValues Empty;
+
 	AlterableValues() : Values(std::vector<CValue>(1, CValue(0))) {}
 	AlterableValues(const std::vector<CValue>& values) : Values(values) {}
 
@@ -37,3 +39,5 @@ public:
 private:
 	std::vector<CValue> Values;
 };
+
+inline const AlterableValues AlterableValues::Empty{};

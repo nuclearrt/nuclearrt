@@ -289,21 +289,21 @@ public class ExpressionConverter
 					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Flags.GetFlagValue(");
 					else
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Flags.GetFlagValue(");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? &(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Flags : &AlterableFlags::Empty)->GetFlagValue(");
 				}
 			case 30: // AltValN(index)
 				{
 					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Values.GetValue(");
 					else
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Values.GetValue(");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? &(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Values : &AlterableValues::Empty)->GetValue(");
 				}
 			case 31: // AltStrN$(index)
 				{
 					if (UseInstance(expression, eventBase))
 						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Strings.GetString(");
 					else
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Strings.GetString(");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? &(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Strings : &AlterableStrings::Empty)->GetString(");
 				}
 			case 19: // AltStr (alterable string A-J by fixed index)
 				{

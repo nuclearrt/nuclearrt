@@ -8,6 +8,8 @@
 class AlterableStrings
 {
 public:
+	static const AlterableStrings Empty;
+
 	AlterableStrings() = default;
 	AlterableStrings(const std::vector<std::string>& values) : Values(values) {}
 
@@ -30,3 +32,5 @@ public:
 private:
 	std::vector<std::string> Values;
 };
+
+inline const AlterableStrings AlterableStrings::Empty{};
