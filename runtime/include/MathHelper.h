@@ -87,6 +87,7 @@ namespace MathHelper {
     inline CValue Sin(const CValue& v) { return CValue(Sin(v.GetDoubleValue())); }
     inline CValue Cos(const CValue& v) { return CValue(Cos(v.GetDoubleValue())); }
     inline CValue Sqrt(const CValue& v) { return CValue(std::sqrt(v.GetDoubleValue())); }
+    inline CValue ATan2(const CValue& y, const CValue& x) { return CValue(ATan2(y.GetDoubleValue(), x.GetDoubleValue())); }
     inline CValue Abs(const CValue& v) { return CValue(std::abs(v.GetDoubleValue())); }
     inline CValue Round(const CValue& v) { return CValue(std::round(v.GetDoubleValue())); }
     inline CValue Floor(const CValue& v) { return CValue(std::floor(v.GetDoubleValue())); }
