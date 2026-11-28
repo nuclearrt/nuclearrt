@@ -374,7 +374,7 @@ public class ObjectInfoExporter : BaseExporter
 			result.AppendLine($"((Counter*)instance)->DefaultValue = {common.Counter.Initial};");
 			result.AppendLine($"((Counter*)instance)->MinValue = CValue({common.Counter.Minimum});");
 			result.AppendLine($"((Counter*)instance)->MaxValue = CValue({common.Counter.Maximum});");
-			result.AppendLine($"((Counter*)instance)->SetValue({common.Counter.Initial});");
+			result.AppendLine($"((Counter*)instance)->SetValue({common.Counter.Initial}, false);");
 		}
 
 		return result.ToString();

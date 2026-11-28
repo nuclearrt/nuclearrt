@@ -17,19 +17,20 @@ public:
 	CValue MaxValue = 0;
 
 	CValue GetValue() const override { return currentValue; }
-	void SetValue(const CValue& value)
+	void SetValue(const CValue& value, bool applyBounds = true)
 	{
-		if (value < MinValue)
+		currentValue = value;
+		
+		if (applyBounds)
 		{
-			currentValue = MinValue;
-		}
-		else if (value > MaxValue)
-		{
-			currentValue = MaxValue;
-		}
-		else
-		{
-			currentValue = value;
+			if (value < MinValue)
+			{
+				currentValue = MinValue;
+			}
+			else if (value > MaxValue)
+			{
+				currentValue = MaxValue;
+			}
 		}
 
 		collisionBoundsDirty = true;
