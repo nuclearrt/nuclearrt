@@ -336,16 +336,16 @@ public class ExpressionConverter
 			case 40: // Object Width
 				{
 					if (UseInstance(expression, eventBase))
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->GetWidth()");
+						return stringBuilder.Append($"CValue((({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->GetWidth())");
 					else
-						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->GetWidth() : CValue(0))");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? CValue((({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->GetWidth()) : CValue(0))");
 				}
 			case 41: // Object Height
 				{
 					if (UseInstance(expression, eventBase))
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->GetHeight()");
+						return stringBuilder.Append($"CValue((({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->GetHeight())");
 					else
-						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? (({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->GetHeight() : CValue(0))");
+						return stringBuilder.Append($"({objectSelector}.Count() > 0 ? CValue((({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->GetHeight()) : CValue(0))");
 				}
 		}
 

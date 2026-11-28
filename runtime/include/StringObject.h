@@ -150,6 +150,16 @@ public:
 			return Paragraphs[CurrentParagraph].VerticalAlignment;
 	}
 
+	int GetWidth() const
+	{
+		return Width;
+	}
+
+	int GetHeight() const
+	{
+		return Height;
+	}
+
 	std::vector<unsigned int> GetFontsUsed() override {
 		std::vector<unsigned int> fontsUsed;
 		for (auto& paragraph : Paragraphs)
