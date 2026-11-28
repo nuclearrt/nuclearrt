@@ -79,7 +79,7 @@ public class ExpressionConverter
 		{ (ObjectType.Game, 11), _ => $"CValue(Width)" }, // VirtualWidth
 		{ (ObjectType.Game, 12), _ => $"CValue(Height)" }, // VirtualHeight
 		{ (ObjectType.Game, 13), _ => "CValue(BackgroundColor)" }, // FrameBkdColor
-		{ (ObjectType.Game, 14), _ => "0" }, // DisplayMode // TODO
+		{ (ObjectType.Game, 14), _ => "CValue(8)" }, // DisplayMode //TODO : acts as DirectX 9
 		{ (ObjectType.Game, 15), _ => "0" }, // PixelShaderVersion // TODO
 
 		//Speaker
