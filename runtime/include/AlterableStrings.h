@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 
+#include "CValue.h"
+
 class AlterableStrings
 {
 public:
@@ -16,10 +18,14 @@ public:
 		Values[index] = value;
 	}
 
-	std::string GetString(int index) const {
+	CValue GetString(int index) const {
 		if (index < 0 || index >= Values.size())
-			return "";
-		return Values[index];
+			return CValue("");
+		return CValue(Values[index]);
+	}
+
+	CValue GetString(const CValue& index) const {
+		return GetString(index.GetIntValue());
 	}
 private:
 	std::vector<std::string> Values;
