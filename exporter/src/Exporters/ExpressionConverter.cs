@@ -287,9 +287,9 @@ public class ExpressionConverter
 			case 13: // Flag(index)
 				{
 					if (UseInstance(expression, eventBase))
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Flags.GetFlag(");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)instance)->Flags.GetFlagValue(");
 					else
-						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Flags.GetFlag(");
+						return stringBuilder.Append($"(({GetObjectClassName(expression.ObjectInfo, expression.ObjectType)}*)*({objectSelector}.begin()))->Flags.GetFlagValue(");
 				}
 			case 30: // AltValN(index)
 				{
