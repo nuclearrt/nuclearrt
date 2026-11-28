@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <cstdio>
 #include <memory>
 #include <new>
 #include <string>
@@ -117,6 +118,16 @@ public:
     }
 
     char GetType() const { return type; }
+
+    static std::string DoubleToString(double value)
+    {
+        char buf[32];
+        if (value == (double)(int)value)
+            std::snprintf(buf, sizeof(buf), "%d", (int)value);
+        else
+            std::snprintf(buf, sizeof(buf), "%g", value);
+        return buf;
+    }
 
     int GetIntValue() const
     {
@@ -235,7 +246,7 @@ public:
                 }
                 else if (other.type == TYPE_DOUBLE)
                 {
-                    data.s += std::to_string(other.data.d);
+                    data.s += DoubleToString(other.data.d);
                 }
                 break;
         }
@@ -271,7 +282,7 @@ public:
                 data.d += other;
                 break;
             case TYPE_STRING:
-                data.s += std::to_string(other);
+                data.s += DoubleToString(other);
                 break;
         }
         return *this;
@@ -781,7 +792,7 @@ private:
         if (type == TYPE_INT)
             value = std::to_string(data.i);
         else
-            value = std::to_string(data.d);
+            value = DoubleToString(data.d);
 
         type = TYPE_STRING;
         new (&data.s) std::string(std::move(value));
