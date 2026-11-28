@@ -459,7 +459,7 @@ void Frame::DrawLayer(Layer& layer)
 		{
 			int scrollXOffset = scrollX * layer.XCoefficient;
 			int scrollYOffset = scrollY * layer.YCoefficient;
-			Application::Instance().GetBackend()->graphics->DrawQuickBackdrop(instance->GetX().GetIntValue() - scrollXOffset, instance->GetY().GetIntValue() - scrollYOffset, ((QuickBackdrop*)instance)->Width, ((QuickBackdrop*)instance)->Height, &((QuickBackdrop*)instance)->shape);
+			Application::Instance().GetBackend()->graphics->DrawQuickBackdrop(instance->GetX().GetIntValue() - scrollXOffset, instance->GetY().GetIntValue() - scrollYOffset, ((QuickBackdrop*)instance)->Width, ((QuickBackdrop*)instance)->Height, &((QuickBackdrop*)instance)->shape, instance->RGBCoefficient, instance->Effect, instance->GetBlendCoefficient().GetIntValue(), instance->effectInstance);
 		}
 		else if (instance->Type >= 32) // Extension
 		{

@@ -302,12 +302,29 @@ void SDL2GraphicsBackend::DrawTexture(int id, int x, int y, int offsetX, int off
 	SDL_SetTextureBlendMode(texture, origBlendMode);
 }
 
-void SDL2GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height, Shape* shape)
+void SDL2GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height, Shape* shape, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance)
 {
 	//TODO: Borders
 	//TODO: Ellipse masks
+	if (effect == 1) // Semi-Transparent doesn't have rgb coeff
+		rgbCoefficient = 0xFFFFFF;
+
+	Uint8 coeffR = (rgbCoefficient >> 16) & 0xFF;
+	Uint8 coeffG = (rgbCoefficient >> 8) & 0xFF;
+	Uint8 coeffB = rgbCoefficient & 0xFF;
+	Uint8 alpha = 255 - effectParameter;
+	SDL_BlendMode blendMode = effect == 9 ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND;
+
+	SDL_BlendMode origDrawBlendMode;
+	SDL_GetRenderDrawBlendMode(renderer, &origDrawBlendMode);
+	SDL_SetRenderDrawBlendMode(renderer, blendMode);
+
+	auto setDrawColor = [&](Uint8 r, Uint8 g, Uint8 b) {
+		SDL_SetRenderDrawColor(renderer, r * coeffR / 255, g * coeffG / 255, b * coeffB / 255, alpha);
+	};
+
 	if (shape->ShapeType == 1) { // Line
-		SDL_SetRenderDrawColor(renderer, (shape->BorderColor >> 16) & 0xFF, (shape->BorderColor >> 8) & 0xFF, shape->BorderColor & 0xFF, SDL_ALPHA_OPAQUE);
+		setDrawColor((shape->BorderColor >> 16) & 0xFF, (shape->BorderColor >> 8) & 0xFF, shape->BorderColor & 0xFF);
 
 		int x1 = shape->FlipX ? x + width : x;
 		int y1 = shape->FlipY ? y + height : y;
@@ -319,7 +336,7 @@ void SDL2GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 	}
 	else {
 		if (shape->FillType == 1) { // Solid Color
-			SDL_SetRenderDrawColor(renderer, (shape->Color1 >> 16) & 0xFF, (shape->Color1 >> 8) & 0xFF, shape->Color1 & 0xFF, SDL_ALPHA_OPAQUE);
+			setDrawColor((shape->Color1 >> 16) & 0xFF, (shape->Color1 >> 8) & 0xFF, shape->Color1 & 0xFF);
 			SDL_Rect rect = { x, y, width, height };
 			SDL_RenderFillRect(renderer, &rect);
 		}
@@ -341,7 +358,7 @@ void SDL2GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 					Uint8 g = static_cast<Uint8>(g1 + (g2 - g1) * ratio);
 					Uint8 b = static_cast<Uint8>(b1 + (b2 - b1) * ratio);
 					
-					SDL_SetRenderDrawColor(renderer, r, g, b, SDL_ALPHA_OPAQUE);
+					setDrawColor(r, g, b);
 					SDL_RenderDrawLine(renderer, x, y + i, x + width - 1, y + i);
 				}
 			} else {
@@ -353,34 +370,47 @@ void SDL2GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 					Uint8 g = static_cast<Uint8>(g1 + (g2 - g1) * ratio);
 					Uint8 b = static_cast<Uint8>(b1 + (b2 - b1) * ratio);
 					
-					SDL_SetRenderDrawColor(renderer, r, g, b, SDL_ALPHA_OPAQUE);
+					setDrawColor(r, g, b);
 					SDL_RenderDrawLine(renderer, x + i, y, x + i, y + height - 1);
 				}
 			}
 		}
 		else if (shape->FillType == 3) { // Motif
 			SDL_Texture* texture = textures[shape->Image];
-			if (texture == nullptr) {
-				return;
-			}
-			
-			int textureWidth, textureHeight;
-			SDL_QueryTexture(texture, nullptr, nullptr, &textureWidth, &textureHeight);
-			
-			// Tile the texture across the entire area
-			for (int tileY = y; tileY < y + height; tileY += textureHeight) {
-				for (int tileX = x; tileX < x + width; tileX += textureWidth) {
-					// Calculate the width and height of this tile (might be smaller at edges)
-					int tileW = std::min(textureWidth, x + width - tileX);
-					int tileH = std::min(textureHeight, y + height - tileY);
-					
-					SDL_Rect destRect = { tileX, tileY, tileW, tileH };
-					SDL_Rect srcRect = { 0, 0, tileW, tileH };
-					SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
+			if (texture != nullptr) {
+				Uint8 origR, origG, origB, origA;
+				SDL_BlendMode origBlendMode;
+				SDL_GetTextureColorMod(texture, &origR, &origG, &origB);
+				SDL_GetTextureAlphaMod(texture, &origA);
+				SDL_GetTextureBlendMode(texture, &origBlendMode);
+				SDL_SetTextureColorMod(texture, coeffR, coeffG, coeffB);
+				SDL_SetTextureAlphaMod(texture, alpha);
+				SDL_SetTextureBlendMode(texture, blendMode);
+
+				int textureWidth, textureHeight;
+				SDL_QueryTexture(texture, nullptr, nullptr, &textureWidth, &textureHeight);
+				
+				// Tile the texture across the entire area
+				for (int tileY = y; tileY < y + height; tileY += textureHeight) {
+					for (int tileX = x; tileX < x + width; tileX += textureWidth) {
+						// Calculate the width and height of this tile (might be smaller at edges)
+						int tileW = std::min(textureWidth, x + width - tileX);
+						int tileH = std::min(textureHeight, y + height - tileY);
+						
+						SDL_Rect destRect = { tileX, tileY, tileW, tileH };
+						SDL_Rect srcRect = { 0, 0, tileW, tileH };
+						SDL_RenderCopy(renderer, texture, &srcRect, &destRect);
+					}
 				}
+
+				SDL_SetTextureColorMod(texture, origR, origG, origB);
+				SDL_SetTextureAlphaMod(texture, origA);
+				SDL_SetTextureBlendMode(texture, origBlendMode);
 			}
 		}
 	}
+
+	SDL_SetRenderDrawBlendMode(renderer, origDrawBlendMode);
 }
 
 void SDL2GraphicsBackend::DrawRectangle(int x, int y, int width, int height, int color)

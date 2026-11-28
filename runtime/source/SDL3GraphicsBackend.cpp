@@ -365,6 +365,19 @@ void SDL3GraphicsBackend::Deinitialize()
 	effectBackgroundWidth = 0;
 	effectBackgroundHeight = 0;
 
+	if (quickBackdropFBO != 0)
+	{
+		glDeleteFramebuffers(1, &quickBackdropFBO);
+		quickBackdropFBO = 0;
+	}
+	if (quickBackdropTexture != 0)
+	{
+		glDeleteTextures(1, &quickBackdropTexture);
+		quickBackdropTexture = 0;
+	}
+	quickBackdropWidth = 0;
+	quickBackdropHeight = 0;
+
 	if (glContext != nullptr)
 	{
 		SDL_GL_DestroyContext(glContext);
@@ -1408,8 +1421,115 @@ EffectShader *SDL3GraphicsBackend::LoadShader(const std::string &name, const std
 	return &inserted.first->second;
 }
 
-void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height, Shape *shape)
+void SDL3GraphicsBackend::EnsureQuickBackdropTarget(int width, int height)
 {
+	if (quickBackdropTexture != 0 && quickBackdropWidth == width && quickBackdropHeight == height)
+	{
+		return;
+	}
+
+	if (quickBackdropFBO != 0)
+	{
+		glDeleteFramebuffers(1, &quickBackdropFBO);
+		quickBackdropFBO = 0;
+	}
+	if (quickBackdropTexture != 0)
+	{
+		glDeleteTextures(1, &quickBackdropTexture);
+		quickBackdropTexture = 0;
+	}
+
+	glGenTextures(1, &quickBackdropTexture);
+	glBindTexture(GL_TEXTURE_2D, quickBackdropTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+	glGenFramebuffers(1, &quickBackdropFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, quickBackdropFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, quickBackdropTexture, 0);
+
+	quickBackdropWidth = width;
+	quickBackdropHeight = height;
+}
+
+void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height, Shape *shape, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance *effectInstance)
+{
+	if (width <= 0 || height <= 0)
+	{
+		return;
+	}
+
+	// semitransparent doesn't have rgb coeff
+	if (effect == 1)
+		rgbCoefficient = 0xFFFFFF;
+
+	bool isPlain = effectInstance == nullptr && effectParameter == 0 && (rgbCoefficient & 0xFFFFFF) == 0xFFFFFF && (effect == 0 || effect == 1 || effect == 4096);
+	if (isPlain || logicalRenderWidth <= 0 || logicalRenderHeight <= 0)
+	{
+		DrawQuickBackdropShape(x, y, width, height, shape);
+		return;
+	}
+
+	// render the shape offscreen so it can go through the effect shaders like a texture
+	float coordScaleX = static_cast<float>(renderTargetWidth) / static_cast<float>(logicalRenderWidth);
+	float coordScaleY = static_cast<float>(renderTargetHeight) / static_cast<float>(logicalRenderHeight);
+	int pixelW = std::max(1, static_cast<int>(std::lround(static_cast<float>(width) * coordScaleX)));
+	int pixelH = std::max(1, static_cast<int>(std::lround(static_cast<float>(height) * coordScaleY)));
+
+	EnsureQuickBackdropTarget(pixelW, pixelH);
+	glBindFramebuffer(GL_FRAMEBUFFER, quickBackdropFBO);
+	glViewport(0, 0, pixelW, pixelH);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	int savedLogicalWidth = logicalRenderWidth;
+	int savedLogicalHeight = logicalRenderHeight;
+	logicalRenderWidth = width;
+	logicalRenderHeight = height;
+	DrawQuickBackdropShape(0, 0, width, height, shape, true);
+	logicalRenderWidth = savedLogicalWidth;
+	logicalRenderHeight = savedLogicalHeight;
+
+	RestoreDrawFramebuffer();
+
+	bool needsBlendRestore = false;
+	if (effect == 9) // Add
+	{
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ONE);
+		needsBlendRestore = true;
+	}
+	else if (effect == 11) // Subtract
+	{
+		glBlendFuncSeparate(GL_ZERO, GL_ONE_MINUS_SRC_COLOR, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+		needsBlendRestore = true;
+	}
+
+	GLuint backgroundTextureId = 0;
+	if (effectInstance != nullptr && effectInstance->UsesBackground)
+	{
+		backgroundTextureId = CaptureObjectBackground(x, y, width, height);
+	}
+
+	ApplyEffectParameters(effectInstance, pixelW, pixelH, rgbCoefficient, effect, effectParameter, quickBackdropTexture, backgroundTextureId);
+
+	RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height));
+
+	if (needsBlendRestore)
+	{
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	}
+}
+
+void SDL3GraphicsBackend::DrawQuickBackdropShape(int x, int y, int width, int height, Shape *shape, bool flipY)
+{
+	float quadX = static_cast<float>(x);
+	float quadY = static_cast<float>(flipY ? y + height : y);
+	float quadW = static_cast<float>(width);
+	float quadH = static_cast<float>(flipY ? -height : height);
+
 	if (shape->ShapeType == 1)
 	{ // Line
 		int x1 = shape->FlipX ? width - 1 : 0;
@@ -1420,7 +1540,7 @@ void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 		// Windows DX9 runtime doesn't support border width to my knowledge
 		Bitmap line(width, height);
 		line.DrawLine(x1, y1, x2, y2, shape->BorderColor | 0xFF000000);
-		DrawBitmap(line, x, y);
+		DrawBitmapQuad(line, quadX, quadY, quadW, quadH);
 	}
 	else
 	{
@@ -1430,7 +1550,7 @@ void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 			currentInkEffect = -1;
 			glUniform4f(colorShaderColorLoc, ((shape->Color1 >> 16) & 0xFF) / 255.0f, ((shape->Color1 >> 8) & 0xFF) / 255.0f, (shape->Color1 & 0xFF) / 255.0f, 1.0f);
 			glUniform1i(colorShaderCircleClipLoc, shape->ShapeType == 3);
-			RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height));
+			RenderQuad(quadX, quadY, quadW, quadH);
 		}
 		else if (shape->FillType == 2)
 		{ // Gradient
@@ -1448,7 +1568,7 @@ void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 			glUniform4f(gradientShaderColor2Loc, r2, g2, b2, 1.0f);
 			glUniform1i(gradientShaderVerticalLoc, shape->VerticalGradient ? 1 : 0);
 			glUniform1i(gradientShaderCircleClipLoc, shape->ShapeType == 3);
-			RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height));
+			RenderQuad(quadX, quadY, quadW, quadH);
 		}
 		else if (shape->FillType == 3)
 		{ // Motif
@@ -1472,7 +1592,7 @@ void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 			glUniform2f(textureQuickbackdropShaderTileScaleLoc,
 						static_cast<float>(width) / static_cast<float>(tw),
 						static_cast<float>(height) / static_cast<float>(th));
-			RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height));
+			RenderQuad(quadX, quadY, quadW, quadH);
 		}
 
 		if (shape->BorderSize > 0)
@@ -1495,7 +1615,7 @@ void SDL3GraphicsBackend::DrawQuickBackdrop(int x, int y, int width, int height,
 					border.DrawEllipseLines(i, i, innerW, innerH, shape->BorderColor | 0xFF000000);
 				}
 			}
-			DrawBitmap(border, x, y);
+			DrawBitmapQuad(border, quadX, quadY, quadW, quadH);
 		}
 	}
 }
@@ -1593,6 +1713,11 @@ void SDL3GraphicsBackend::DrawCounterBar(int x, int y, Counter *counter)
 
 void SDL3GraphicsBackend::DrawBitmap(Bitmap &bitmap, int x, int y)
 {
+	DrawBitmapQuad(bitmap, static_cast<float>(x), static_cast<float>(y), static_cast<float>(bitmap.GetWidth()), static_cast<float>(bitmap.GetHeight()));
+}
+
+void SDL3GraphicsBackend::DrawBitmapQuad(Bitmap &bitmap, float x, float y, float width, float height)
+{
 	if (bitmap.GetWidth() <= 0 || bitmap.GetHeight() <= 0)
 	{
 		return;
@@ -1613,7 +1738,7 @@ void SDL3GraphicsBackend::DrawBitmap(Bitmap &bitmap, int x, int y)
 	glUniform1i(defaultShader.texLoc, 0);
 	glUniform4f(defaultShader.colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
 
-	RenderQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(bitmap.GetWidth()), static_cast<float>(bitmap.GetHeight()), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+	RenderQuad(x, y, width, height);
 	glDeleteTextures(1, &tempTexture);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);

@@ -55,7 +55,7 @@ public:
 	void LoadTexture(int id) override;
 	void UnloadTexture(int id) override;
 	void DrawTexture(int id, int x, int y, int offsetX, int offsetY, int angle, float scaleX, float scaleY, int color, int effect, unsigned char effectParameter, EffectInstance* effectInstance = nullptr) override;
-	void DrawQuickBackdrop(int x, int y, int width, int height, Shape* shape) override;
+	void DrawQuickBackdrop(int x, int y, int width, int height, Shape* shape, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance = nullptr) override;
 	void DrawCounterBar(int x, int y, Counter* counter) override;
 	void DrawBitmap(Bitmap& bitmap, int x, int y) override;
 	void DrawEffectRect(int x, int y, int width, int height, int rgbCoefficient, int effect, unsigned char effectParameter, EffectInstance* effectInstance) override;
@@ -151,6 +151,14 @@ private:
 	GLuint effectBackgroundFBO = 0;
 	int effectBackgroundWidth = 0;
 	int effectBackgroundHeight = 0;
+
+	GLuint quickBackdropTexture = 0;
+	GLuint quickBackdropFBO = 0;
+	int quickBackdropWidth = 0;
+	int quickBackdropHeight = 0;
+	void EnsureQuickBackdropTarget(int width, int height);
+	void DrawQuickBackdropShape(int x, int y, int width, int height, Shape* shape, bool flipY = false);
+	void DrawBitmapQuad(Bitmap& bitmap, float x, float y, float width, float height);
 	
 	void CreateStandardShaders();
 	void UseEffectShader(int effect);
